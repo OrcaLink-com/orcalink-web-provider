@@ -129,7 +129,8 @@ export const api = {
   async verifyOtp(channel: OtpChannel, destination: string, code: string, name?: string) {
     const res = await request<TokenResponse>(
       '/auth/otp/verify',
-      jsonBody({ channel, destination, code, name }),
+      // intent PROVIDER: no 1º acesso o usuário nasce como PRESTADOR (não CLIENT).
+      jsonBody({ channel, destination, code, name, intent: 'PROVIDER' }),
       false,
     );
     storeSession(res);
