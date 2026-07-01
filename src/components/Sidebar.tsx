@@ -14,7 +14,7 @@ export function Sidebar() {
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-background px-3 py-5 lg:flex">
       <div className="flex items-center justify-between px-2">
         <Link to="/" className="flex items-center gap-1.5" aria-label={`${brand.name} Pro`}>
-          <img src="/brand/logo.svg" alt={brand.name} className="h-7 w-auto" />
+          <img src="/brand/logo.svg" alt={brand.name} className="h-10 w-auto" />
           <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Pro</span>
         </Link>
         <NotificationsBell />

@@ -38,7 +38,7 @@ function Nav() {
     <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-lg">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5">
         <span className="flex items-center gap-1.5">
-          <img src="/brand/logo.svg" alt={brand.name} className="h-8 w-auto" />
+          <img src="/brand/logo.svg" alt={brand.name} className="h-10 w-auto" />
           <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Pro</span>
         </span>
         <nav className="flex items-center gap-2 sm:gap-3">
