@@ -13,13 +13,20 @@ import {
   useStartExecution,
   useVisits,
 } from '../../lib/queries';
+import { LuArrowLeft, LuSend } from 'react-icons/lu';
 import { formatBRL, formatDateTime } from '../../lib/format';
 import { useQuoteRealtime } from '../../lib/realtime';
 import type { Message } from '../../lib/types';
 
 function MessageBubble({ message, mine }: { message: Message; mine: boolean }) {
   if (message.type === 'SYSTEM') {
-    return <div className="my-2 text-center text-xs text-text-muted">{message.body}</div>;
+    return (
+      <div className="my-2 flex justify-center">
+        <span className="rounded-md bg-content1 px-3 py-1 text-center text-[11px] text-text-muted">
+          {message.body}
+        </span>
+      </div>
+    );
   }
   if (message.type === 'PROPOSAL' && message.proposal) {
     const p = message.proposal;
@@ -59,15 +66,28 @@ function MessageBubble({ message, mine }: { message: Message; mine: boolean }) {
   if (message.type === 'PROPOSAL_REJECTED') {
     return <div className="my-2 text-center text-xs text-danger">{message.body}</div>;
   }
+  const time = new Date(message.createdAt).toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
   return (
-    <div className={`my-1 flex ${mine ? 'justify-end' : 'justify-start'}`}>
-      <span
-        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-          mine ? 'bg-brand text-white' : 'bg-card text-text'
+    <div className={`my-0.5 flex ${mine ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-[78%] px-3 py-2 text-sm shadow-sm ${
+          mine
+            ? 'rounded-2xl rounded-br-sm bg-primary text-white'
+            : 'rounded-2xl rounded-bl-sm bg-content2 text-foreground'
         }`}
       >
-        {message.body}
-      </span>
+        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        <span
+          className={`mt-0.5 block text-right text-[10px] ${
+            mine ? 'text-white/70' : 'text-text-muted'
+          }`}
+        >
+          {time}
+        </span>
+      </div>
     </div>
   );
 }
@@ -228,6 +248,7 @@ export function ConversationPage() {
 
   const [text, setText] = useState('');
   const [showProposal, setShowProposal] = useState(false);
+  const [showVisit, setShowVisit] = useState(false);
   const [proposalType, setProposalType] = useState<'PRE' | 'FINAL'>('FINAL');
   const [amount, setAmount] = useState('');
   const [amountMin, setAmountMin] = useState('');
@@ -335,57 +356,121 @@ export function ConversationPage() {
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] flex-col">
-      <Link to="/conversas" className="mb-2 text-sm text-text-muted underline">
-        ← Conversas
-      </Link>
-      <h2 className="mb-2 font-semibold">{conversation?.counterpartName ?? 'Conversa'}</h2>
+    <div className="mx-auto flex h-[calc(100dvh-8rem)] max-w-2xl flex-col overflow-hidden rounded-large border border-border">
+      {/* Cabeçalho estilo WhatsApp */}
+      <header className="flex items-center gap-3 border-b border-border bg-content1 px-3 py-2.5">
+        <Link to="/conversas" className="text-text-muted hover:text-foreground" aria-label="Voltar">
+          <LuArrowLeft size={22} />
+        </Link>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary">
+          {(conversation?.counterpartName ?? '?').charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-base font-semibold leading-tight">
+            {conversation?.counterpartName ?? 'Conversa'}
+          </h2>
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            {isActive ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-success" />
+                <span>Cliente · online</span>
+              </>
+            ) : (
+              <span>conversa encerrada</span>
+            )}
+          </div>
+        </div>
+      </header>
 
-      {selected && net !== undefined && (
-        <div className="mb-2 flex items-center justify-between rounded-lg bg-status-finished px-3 py-2 text-white">
-          <span className="text-sm">Você foi selecionado · valor líquido</span>
-          <span className="font-bold">{formatBRL(net)}</span>
+      {/* Faixa de status do serviço (selecionado / execução) */}
+      {((selected && net !== undefined) || canStartExecution || inProgress) && (
+        <div className="space-y-2 border-b border-border bg-content1/60 px-3 py-2">
+          {selected && net !== undefined && (
+            <div className="flex items-center justify-between rounded-medium bg-status-finished/15 px-3 py-2 text-status-finished">
+              <span className="text-sm font-medium">Você foi selecionado · líquido</span>
+              <span className="font-bold">{formatBRL(net)}</span>
+            </div>
+          )}
+          {canStartExecution && (
+            <button
+              onClick={() => startExec.mutate()}
+              disabled={startExec.isPending}
+              className="w-full rounded-medium bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {startExec.isPending ? 'Iniciando…' : '▶ Iniciar serviço'}
+            </button>
+          )}
+          {inProgress && (
+            <div className="rounded-medium bg-status-scheduled/15 px-3 py-2 text-center text-sm text-status-scheduled">
+              Execução em andamento — aguarde o cliente confirmar a conclusão.
+            </div>
+          )}
         </div>
       )}
 
-      {canStartExecution && (
-        <button
-          onClick={() => startExec.mutate()}
-          disabled={startExec.isPending}
-          className="mb-2 w-full rounded-md bg-brand px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {startExec.isPending ? 'Iniciando…' : '▶ Iniciar serviço'}
-        </button>
-      )}
-      {inProgress && (
-        <div className="mb-2 rounded-md bg-status-scheduled px-3 py-2 text-center text-sm text-white">
-          Execução em andamento — aguarde o cliente confirmar a conclusão.
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto rounded-lg border border-border p-3">
+      {/* Área de mensagens */}
+      <div className="flex-1 space-y-1 overflow-y-auto bg-background px-3 py-3">
+        <p className="mx-auto mb-2 max-w-sm rounded-md bg-content1 px-3 py-1.5 text-center text-[11px] text-text-muted">
+          🔒 Mensagens e ações desta conversa ficam registradas com segurança.
+        </p>
         {messagesQ.isLoading && <p className="text-text-muted">Carregando…</p>}
         {messagesQ.data?.length === 0 && (
           <p className="text-center text-sm text-text-muted">
             Inicie a conversa ou envie uma proposta.
           </p>
         )}
-        {messagesQ.data?.map((m) => (
-          <MessageBubble key={m.id} message={m} mine={m.senderId === user?.id} />
-        ))}
+        {messagesQ.data?.map((m, i) => {
+          const prev = messagesQ.data![i - 1];
+          const showDay = !prev || !sameDay(prev.createdAt, m.createdAt);
+          return (
+            <div key={m.id}>
+              {showDay && (
+                <div className="my-2 flex justify-center">
+                  <span className="rounded-full bg-content1 px-3 py-1 text-[11px] font-medium text-text-muted">
+                    {dayLabel(m.createdAt)}
+                  </span>
+                </div>
+              )}
+              <MessageBubble message={m} mine={m.senderId === user?.id} />
+            </div>
+          );
+        })}
       </div>
 
-      {conversation?.quoteId && <div className="mt-2"><VisitsPanel quoteId={conversation.quoteId} /></div>}
+      {isActive && showVisit && (
+        <div className="border-t border-border bg-content1 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-primary">Solicitar visita</p>
+            <button
+              type="button"
+              onClick={() => setShowVisit(false)}
+              className="text-xs text-text-muted hover:text-foreground"
+            >
+              Fechar
+            </button>
+          </div>
+          {conversation?.quoteId && <VisitsPanel quoteId={conversation.quoteId} />}
+        </div>
+      )}
 
       {!isActive && (
-        <p className="mt-2 rounded-md bg-card px-3 py-2 text-center text-sm text-text-muted">
+        <p className="border-t border-border bg-content1 px-3 py-2 text-center text-sm text-text-muted">
           Esta negociação foi encerrada.
         </p>
       )}
 
       {isActive && showProposal && (
-        <form onSubmit={onPropose} className="mt-2 space-y-2 rounded-lg border border-brand p-3">
-          <p className="text-sm font-medium text-brand">Enviar proposta</p>
+        <form onSubmit={onPropose} className="space-y-2 border-t border-border bg-content1 p-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-primary">Enviar proposta</p>
+            <button
+              type="button"
+              onClick={() => setShowProposal(false)}
+              className="text-xs text-text-muted hover:text-foreground"
+            >
+              Fechar
+            </button>
+          </div>
           <div className="flex gap-2 text-sm">
             <button
               type="button"
@@ -533,31 +618,64 @@ export function ConversationPage() {
         </form>
       )}
 
-      {isActive && !showProposal && (
-        <button
-          onClick={openProposalForm}
-          className="mt-2 w-full rounded-md border border-brand px-4 py-2 text-sm font-medium text-brand"
-        >
-          {canSendFinal ? '+ Enviar proposta' : '+ Enviar estimativa'}
-        </button>
+      {isActive && !showProposal && !showVisit && (
+        <div className="flex gap-2 border-t border-border bg-content1 px-2.5 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowVisit(true)}
+            className="flex-1 rounded-medium border border-border py-2 text-sm font-medium hover:bg-card-2"
+          >
+            📅 Solicitar visita
+          </button>
+          <button
+            type="button"
+            onClick={openProposalForm}
+            className="flex-1 rounded-medium border border-primary py-2 text-sm font-medium text-primary hover:bg-primary/10"
+          >
+            ＋ {canSendFinal ? 'Enviar proposta' : 'Enviar estimativa'}
+          </button>
+        </div>
       )}
 
-      <form onSubmit={onSend} className="mt-2 flex gap-2">
+      <form onSubmit={onSend} className="flex items-center gap-2 border-t border-border bg-content1 px-2.5 py-2">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={!isActive}
-          placeholder={isActive ? 'Escreva uma mensagem…' : 'Conversa encerrada'}
-          className="flex-1 rounded-md border border-border bg-bg px-3 py-2 disabled:opacity-60"
+          placeholder={isActive ? 'Mensagem' : 'Conversa encerrada'}
+          className="h-11 flex-1 rounded-full border border-border bg-background px-4 text-sm outline-none transition-colors focus:border-primary disabled:opacity-60"
         />
         <button
           type="submit"
-          disabled={!isActive || sendMessage.isPending}
-          className="rounded-md bg-brand px-4 py-2 font-medium text-white disabled:opacity-50"
+          disabled={!isActive || sendMessage.isPending || !text.trim()}
+          aria-label="Enviar"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-white transition-colors hover:opacity-90 disabled:opacity-50"
         >
-          Enviar
+          <LuSend size={20} />
         </button>
       </form>
     </div>
   );
+}
+
+/** Mesmo dia do calendário? */
+function sameDay(a: string, b: string): boolean {
+  const da = new Date(a);
+  const db = new Date(b);
+  return (
+    da.getFullYear() === db.getFullYear() &&
+    da.getMonth() === db.getMonth() &&
+    da.getDate() === db.getDate()
+  );
+}
+
+/** "Hoje" / "Ontem" / data. */
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const yst = new Date();
+  yst.setDate(today.getDate() - 1);
+  if (sameDay(iso, today.toISOString())) return 'Hoje';
+  if (sameDay(iso, yst.toISOString())) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
 }
