@@ -1,0 +1,23 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OrcaLink">
+  <defs>
+    <linearGradient id="ol-b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset=".55" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="ol-r" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8" stop-opacity=".4"/>
+    </linearGradient>
+    <radialGradient id="ol-g" cx=".5" cy=".42" r=".62">
+      <stop offset="0" stop-color="#1d4ed8" stop-opacity=".4"/>
+      <stop offset="1" stop-color="#1d4ed8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#0b0e14"/>
+  <circle cx="256" cy="256" r="180" fill="url(#ol-g)"/>
+  <circle cx="256" cy="248" r="150" fill="none" stroke="url(#ol-r)" stroke-width="22"/>
+  <g transform="translate(256,262) scale(2.7)" fill="url(#ol-b)">
+    <path d="M 0,33 C -10,20 -40,10 -51,-36 C -30,-12 -12,-9 0,-3 C 12,-9 30,-12 51,-36 C 40,10 10,20 0,33 Z"/>
+  </g>
+</svg>

@@ -1,0 +1,45 @@
+import { useAuth } from '../../auth/AuthContext';
+import { useRating } from '../../lib/queries';
+import { Avatar, Button, Card, ListRow, RatingStars } from '../../components/ui';
+import { IconAgenda, IconArea, IconLogout } from '../../components/icons';
+
+/** "Eu" do prestador: reputação + Meu negócio (área, agenda) + sair. */
+export function EuPage() {
+  const { user, logout } = useAuth();
+  const ratingQ = useRating();
+  const rating = ratingQ.data;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Avatar name={user?.name ?? 'Você'} size="lg" />
+        <div>
+          <p className="text-lg font-semibold">{user?.name ?? 'Você'}</p>
+          {rating && rating.ratingCount > 0 ? (
+            <RatingStars value={rating.ratingAvg} count={rating.ratingCount} />
+          ) : (
+            <p className="text-xs text-text-muted">Profissional · sem avaliações ainda</p>
+          )}
+        </div>
+      </div>
+
+      <section>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Meu negócio</h2>
+        <Card className="divide-y divide-border p-0">
+          <ListRow icon={<IconArea size={18} />} title="Área de atendimento" to="/area" />
+          <ListRow icon={<IconAgenda size={18} />} title="Disponibilidade & bloqueios" to="/agenda" />
+        </Card>
+      </section>
+
+      <Button
+        variant="secondary"
+        full
+        onClick={() => void logout()}
+        startContent={<IconLogout size={16} />}
+        className="text-danger"
+      >
+        Sair
+      </Button>
+    </div>
+  );
+}

@@ -1,0 +1,70 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import { api, clearSession, getStoredUser, setAuthLostHandler } from '../lib/api';
+import type { AuthUser, OtpChannel } from '../lib/types';
+
+interface AcceptInviteInput {
+  token: string;
+  name: string;
+  document?: string;
+  companyName?: string;
+}
+
+interface AuthContextValue {
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  requestOtp: (channel: OtpChannel, destination: string) => Promise<{ devCode?: string }>;
+  verifyOtp: (channel: OtpChannel, destination: string, code: string) => Promise<void>;
+  acceptInvite: (input: AcceptInviteInput) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+
+  useEffect(() => {
+    setAuthLostHandler(() => {
+      clearSession();
+      setUser(null);
+    });
+    return () => setAuthLostHandler(null);
+  }, []);
+
+  const requestOtp = useCallback(
+    (channel: OtpChannel, destination: string) => api.requestOtp(channel, destination),
+    [],
+  );
+
+  const verifyOtp = useCallback(
+    async (channel: OtpChannel, destination: string, code: string) => {
+      const u = await api.verifyOtp(channel, destination, code);
+      setUser(u);
+    },
+    [],
+  );
+
+  const acceptInvite = useCallback(async (input: AcceptInviteInput) => {
+    const u = await api.acceptInvite(input);
+    setUser(u);
+  }, []);
+
+  const logout = useCallback(async () => {
+    await api.logout();
+    setUser(null);
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, isAuthenticated: Boolean(user), requestOtp, verifyOtp, acceptInvite, logout }),
+    [user, requestOtp, verifyOtp, acceptInvite, logout],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>.');
+  return ctx;
+}
