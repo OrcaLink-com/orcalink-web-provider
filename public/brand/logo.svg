@@ -2,13 +2,13 @@
      font-family="Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
   <defs>
     <linearGradient id="olw-b" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#60a5fa"/>
-      <stop offset=".55" stop-color="#3b82f6"/>
-      <stop offset="1" stop-color="#1d4ed8"/>
+      <stop offset="0" stop-color="#4ade80"/>
+      <stop offset=".55" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#16a34a"/>
     </linearGradient>
     <linearGradient id="olw-r" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#3b82f6"/>
-      <stop offset="1" stop-color="#1d4ed8" stop-opacity=".4"/>
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#16a34a" stop-opacity=".4"/>
     </linearGradient>
   </defs>
   <g transform="translate(75,75)">
