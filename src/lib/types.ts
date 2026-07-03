@@ -280,6 +280,7 @@ export interface ConversationSummary {
   requiresVisit: boolean;
   counterpartName: string;
   counterpartId: string;
+  counterpartAvatarUrl?: string;
   lastMessage?: Message;
   unreadCount: number;
   latestProposal?: Proposal;

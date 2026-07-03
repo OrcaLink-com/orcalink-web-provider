@@ -355,7 +355,7 @@ function WorkCard({
     <Card className={`p-4 ${unread > 0 ? 'border-primary/40 bg-primary/5' : ''}`}>
       <div className="flex items-start gap-3">
         <div className="relative shrink-0">
-          <Avatar name={c.counterpartName} />
+          <Avatar name={c.counterpartName} src={c.counterpartAvatarUrl} />
           {unread > 0 && (
             <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
               {unread > 9 ? '9+' : unread}

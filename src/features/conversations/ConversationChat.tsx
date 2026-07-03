@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LuCalendarPlus, LuFilePlus } from 'react-icons/lu';
+import { LuCalendarClock, LuCalendarPlus, LuFilePlus, LuPlay } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
   useAvailableSlots,
-  useCompleteVisit,
   useConfirmVisit,
   useCreateProposal,
   useMessages,
   useMyConversations,
   usePricing,
+  useProfile,
   useRequestVisit,
   useSendMessage,
   useStartExecution,
@@ -23,6 +23,7 @@ import type { ChatActionHandlers, ChatMessage, ChatParticipant } from '../../com
 import { messagesToChat, toServiceStatus } from './chatAdapter';
 import { computeNextStep } from './nextStep';
 import { NextStepBanner } from '../../components/NextStepBanner';
+import { NextActionCard } from '../../components/NextActionCard';
 
 interface ConversationChatProps {
   conversationId: string;
@@ -76,10 +77,12 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
 
   const [pane, setPane] = useState<'none' | 'proposal' | 'visit'>('none');
 
+  const myProfile = useProfile();
   const peer: ChatParticipant | null = conversation
     ? {
         id: conversation.counterpartId,
         name: conversation.counterpartName,
+        avatarUrl: conversation.counterpartAvatarUrl,
         role: 'client',
         online: presence.online,
         lastSeenAt: presence.lastSeenAt,
@@ -88,9 +91,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
 
   const messages = useMemo<ChatMessage[]>(() => {
     if (!messagesQ.data || !conversation || !peer) return [];
-    const me: ChatParticipant = { id: user?.id ?? 'me', name: 'Você', role: 'provider' };
+    const me: ChatParticipant = { id: user?.id ?? 'me', name: 'Você', role: 'provider', avatarUrl: myProfile.data?.avatarUrl ?? undefined };
     return messagesToChat(messagesQ.data, { me, peer });
-  }, [messagesQ.data, conversation, peer, user?.id]);
+  }, [messagesQ.data, conversation, peer, user?.id, myProfile.data?.avatarUrl]);
 
   const handlers: ChatActionHandlers = {
     onSendMessage: async (t) => {
@@ -122,7 +125,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       })
     : null;
 
-  const hasBanner = (selected && net !== undefined) || paid || canStartExecution || inProgress;
+  const hasBanner = (selected && net !== undefined) || inProgress;
   const headerBanner =
     nextStep || hasBanner ? (
       <>
@@ -135,21 +138,6 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
           <span className="font-bold">{formatBRL(net)}</span>
         </div>
       )}
-      {paid && (
-        <div className="rounded-medium bg-status-finished/15 px-3 py-2 text-sm text-status-finished">
-          💰 <strong>Pagamento recebido!</strong> O valor fica em custódia. Combine e agende a{' '}
-          <strong>data de execução</strong> com o cliente (em “Solicitar visita” → Execução).
-        </div>
-      )}
-      {canStartExecution && (
-        <button
-          onClick={() => startExec.mutate()}
-          disabled={startExec.isPending}
-          className="w-full rounded-medium bg-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
-          {startExec.isPending ? 'Iniciando…' : '▶ Iniciar serviço'}
-        </button>
-      )}
       {inProgress && (
         <div className="rounded-medium bg-status-scheduled/15 px-3 py-2 text-center text-sm text-status-scheduled">
           Execução em andamento — aguarde o cliente confirmar a conclusão.
@@ -159,6 +147,40 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         )}
       </>
     ) : undefined;
+
+  // Card de ação premium fixado acima do input (bottom sheet) — próxima ação do prestador.
+  let nextAction: ReactNode;
+  if (isActive && pane === 'none') {
+    if (paid) {
+      nextAction = (
+        <NextActionCard
+          tone="amber"
+          icon={<LuCalendarClock size={20} />}
+          title="Informe a data de execução"
+          description="O pagamento foi confirmado. Combine e agende a data prevista para executar o serviço."
+          ctaLabel="Agendar execução"
+          onCta={() => setPane('visit')}
+        />
+      );
+    } else if (canStartExecution) {
+      nextAction = (
+        <NextActionCard
+          tone="sky"
+          icon={<LuPlay size={20} />}
+          title="Inicie o serviço"
+          description="Chegou a data combinada? Inicie a execução para o cliente acompanhar."
+          ctaLabel="Iniciar serviço"
+          onCta={async () => {
+            await startExec.mutateAsync();
+          }}
+          confirm={{
+            description: 'Confirme que você vai iniciar a execução do serviço agora.',
+            confirmLabel: 'Sim, iniciar',
+          }}
+        />
+      );
+    }
+  }
 
   const aboveComposer = isActive ? (
     pane === 'proposal' ? (
@@ -211,7 +233,14 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       autoFocusComposer
       onBack={onBack}
       headerBanner={headerBanner}
-      aboveComposer={aboveComposer}
+      aboveComposer={
+        nextAction || aboveComposer ? (
+          <>
+            {nextAction}
+            {aboveComposer}
+          </>
+        ) : undefined
+      }
     />
   );
 }
@@ -221,7 +250,6 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
   const visitsQ = useVisits(quoteId);
   const request = useRequestVisit(quoteId);
   const confirmVisit = useConfirmVisit(quoteId);
-  const completeVisit = useCompleteVisit(quoteId);
   const [type, setType] = useState<'IN_LOCO' | 'EXECUTION'>('IN_LOCO');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedSlotISO, setSelectedSlotISO] = useState<string>('');
@@ -278,14 +306,7 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
                 </button>
               )}
               {v.type === 'IN_LOCO' && v.status === 'CONFIRMED' && (
-                <button
-                  type="button"
-                  onClick={() => completeVisit.mutate(v.id)}
-                  disabled={completeVisit.isPending}
-                  className="rounded-md bg-status-finished px-2 py-0.5 text-xs font-medium text-white disabled:opacity-50"
-                >
-                  {completeVisit.isPending ? 'Salvando…' : 'Marcar como realizada'}
-                </button>
+                <span className="text-[11px] text-text-muted">Aguardando o cliente confirmar a realização</span>
               )}
             </li>
           ))}

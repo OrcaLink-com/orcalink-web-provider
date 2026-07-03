@@ -1,6 +1,6 @@
 import { LuPencil } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
-import { useRating } from '../../lib/queries';
+import { useProfile, useRating } from '../../lib/queries';
 import { Avatar, Button, ButtonLink, Card, ListRow, RatingStars } from '../../components/ui';
 import { IconAgenda, IconArea, IconInbox, IconWallet, IconLogout } from '../../components/icons';
 
@@ -9,11 +9,12 @@ export function EuPage() {
   const { user, logout } = useAuth();
   const ratingQ = useRating();
   const rating = ratingQ.data;
+  const profile = useProfile();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Avatar name={user?.name ?? 'Você'} size="lg" />
+        <Avatar name={user?.name ?? 'Você'} src={profile.data?.avatarUrl} size="lg" />
         <div className="min-w-0 flex-1">
           <p className="text-lg font-semibold">{user?.name ?? 'Você'}</p>
           {rating && rating.ratingCount > 0 ? (

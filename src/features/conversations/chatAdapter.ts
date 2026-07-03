@@ -14,7 +14,9 @@ function systemEvent(body: string): EventPayload {
   if (b.includes('visita'))
     return { icon: 'calendar-clock', tone: 'blue', title: 'Visita técnica', description: body };
   if (b.includes('avali'))
-    return { icon: 'star', tone: 'amber', title: 'Avaliação', description: body };
+    return { icon: 'star', tone: 'amber', title: 'Avaliação recebida', description: body };
+  if (b.includes('reabert'))
+    return { icon: 'info', tone: 'blue', title: 'Conversa reaberta', description: body };
   return { icon: 'info', tone: 'neutral', title: 'Atualização do orçamento', description: body };
 }
 

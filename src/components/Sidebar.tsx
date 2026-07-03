@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { useAuth } from '../auth/AuthContext';
 import { NotificationsBell } from './NotificationsBell';
-import { useNotifications } from '../lib/queries';
+import { useNotifications, useProfile } from '../lib/queries';
 import { Avatar } from './ui';
 import { IconHome, IconBusiness, IconAgenda, IconInbox, IconWallet, IconUser, IconLogout } from './icons';
 
@@ -11,6 +11,7 @@ import { IconHome, IconBusiness, IconAgenda, IconInbox, IconWallet, IconUser, Ic
 export function Sidebar() {
   const { user, logout } = useAuth();
   const notif = useNotifications();
+  const profile = useProfile();
   const unread = notif.data?.unreadCount ?? 0;
 
   return (
@@ -34,7 +35,7 @@ export function Sidebar() {
 
       <div className="mt-auto border-t border-border pt-3">
         <div className="flex items-center gap-2.5 px-2 py-2">
-          <Avatar name={user?.name ?? '?'} size="sm" />
+          <Avatar name={user?.name ?? '?'} src={profile.data?.avatarUrl} size="sm" />
           <span className="min-w-0 flex-1 truncate text-sm font-medium">{user?.name ?? 'Você'}</span>
           <button onClick={() => void logout()} aria-label="Sair" className="text-text-muted hover:text-danger">
             <IconLogout size={18} />
