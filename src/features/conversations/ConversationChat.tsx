@@ -54,6 +54,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const net = pricingQ.data?.providerNetCents;
 
   const startExec = useStartExecution(conversation?.quoteId ?? '');
+  const paid = conversation?.quoteStatus === 'PAID';
   const canStartExecution = conversation?.quoteStatus === 'EXECUTION_SCHEDULED';
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
 
@@ -79,13 +80,19 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
     return <p className="p-6 text-center text-sm text-text-muted">Carregando conversa…</p>;
   }
 
-  const hasBanner = (selected && net !== undefined) || canStartExecution || inProgress;
+  const hasBanner = (selected && net !== undefined) || paid || canStartExecution || inProgress;
   const headerBanner = hasBanner ? (
     <div className="space-y-2 border-b border-border bg-content1/60 px-3 py-2">
       {selected && net !== undefined && (
         <div className="flex items-center justify-between rounded-medium bg-status-finished/15 px-3 py-2 text-status-finished">
           <span className="text-sm font-medium">Você foi selecionado · líquido</span>
           <span className="font-bold">{formatBRL(net)}</span>
+        </div>
+      )}
+      {paid && (
+        <div className="rounded-medium bg-status-finished/15 px-3 py-2 text-sm text-status-finished">
+          💰 <strong>Pagamento recebido!</strong> O valor fica em custódia. Combine e agende a{' '}
+          <strong>data de execução</strong> com o cliente (em “Solicitar visita” → Execução).
         </div>
       )}
       {canStartExecution && (

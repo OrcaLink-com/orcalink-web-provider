@@ -49,6 +49,13 @@ export function useNotificationsRealtime(): void {
     const s = getSocket();
     const onNew = () => {
       void qc.invalidateQueries({ queryKey: ['notifications'] });
+      // Uma notificação (ex.: pagamento confirmado, proposta aceita) sinaliza que
+      // o pipeline mudou → atualiza Home (dashboard), lista de trabalhos e visitas
+      // mesmo que o prestador não esteja dentro daquele orçamento.
+      void qc.invalidateQueries({ queryKey: ['provider', 'dashboard'] });
+      void qc.invalidateQueries({ queryKey: ['provider', 'conversations'] });
+      void qc.invalidateQueries({ queryKey: ['provider', 'quotes'] });
+      void qc.invalidateQueries({ queryKey: ['provider', 'my-visits'] });
     };
     s.on('notification:new', onNew);
     return () => {
