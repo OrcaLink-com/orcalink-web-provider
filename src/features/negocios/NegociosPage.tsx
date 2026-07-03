@@ -16,26 +16,68 @@ import {
   StatusChip,
 } from '../../components/ui';
 import type { Segment } from '../../components/ui';
-import { IconBusiness, IconChat, IconLocation, IconSearch, IconUser } from '../../components/icons';
+import { IconBusiness, IconChat, IconClock, IconLocation, IconSearch, IconUser } from '../../components/icons';
 import { ConversationDrawer } from '../conversations/ConversationDrawer';
 import { computeUrgency, URGENCY_VAR } from './urgency';
-import type { ProviderQuote } from '../../lib/types';
+import type { ConversationSummary, ProviderQuote, QuoteStatus } from '../../lib/types';
 
-type Tab = 'oportunidades' | 'andamento';
+type Tab = 'oportunidades' | 'negociacao' | 'execucao' | 'finalizados';
 type Sort = 'urgencia' | 'distancia' | 'data' | 'valor';
+
+/** Grupos de status do orçamento por etapa do ciclo de trabalho. */
+const NEGOTIATING_Q: QuoteStatus[] = ['WAITING_PROPOSALS', 'IN_NEGOTIATION', 'PROVIDER_SELECTED', 'WAITING_PAYMENT'];
+const EXECUTING_Q: QuoteStatus[] = ['PAID', 'EXECUTION_SCHEDULED', 'IN_PROGRESS'];
+const FINISHED_Q: QuoteStatus[] = ['FINISHED', 'CANCELED'];
 
 export function NegociosPage() {
   const [tab, setTab] = useState<Tab>('oportunidades');
+
+  const quotesQ = useOpenQuotes();
+  const convsQ = useMyConversations();
+
+  const newCount = (quotesQ.data ?? []).filter((q) => !q.myConversationId).length;
+  const convs = convsQ.data ?? [];
+  const negCount = convs.filter((c) => NEGOTIATING_Q.includes(c.quoteStatus)).length;
+  const execCount = convs.filter((c) => EXECUTING_Q.includes(c.quoteStatus)).length;
+  const doneCount = convs.filter((c) => FINISHED_Q.includes(c.quoteStatus)).length;
+
   const tabs: Segment<Tab>[] = [
-    { value: 'oportunidades', label: 'Oportunidades' },
-    { value: 'andamento', label: 'Em andamento' },
+    { value: 'oportunidades', label: 'Oportunidades', count: newCount },
+    { value: 'negociacao', label: 'Em negociação', count: negCount },
+    { value: 'execucao', label: 'Em execução', count: execCount },
+    { value: 'finalizados', label: 'Finalizados', count: doneCount },
   ];
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Trabalhos" subtitle="Novas oportunidades e os trabalhos em andamento." />
+      <PageHeader title="Trabalhos" subtitle="Acompanhe cada etapa: oportunidades, negociação, execução e concluídos." />
       <SegmentedTabs segments={tabs} value={tab} onChange={setTab} />
-      {tab === 'oportunidades' ? <OpportunitiesTab /> : <WorksTab />}
+
+      {tab === 'oportunidades' && <OpportunitiesTab />}
+      {tab === 'negociacao' && (
+        <WorksList
+          variant="negotiation"
+          loading={convsQ.isLoading}
+          conversations={convs.filter((c) => NEGOTIATING_Q.includes(c.quoteStatus))}
+          empty="Nenhuma negociação em aberto. Responda uma oportunidade para começar."
+        />
+      )}
+      {tab === 'execucao' && (
+        <WorksList
+          variant="execution"
+          loading={convsQ.isLoading}
+          conversations={convs.filter((c) => EXECUTING_Q.includes(c.quoteStatus))}
+          empty="Nenhum trabalho em execução. Quando um cliente pagar, ele aparece aqui."
+        />
+      )}
+      {tab === 'finalizados' && (
+        <WorksList
+          variant="finished"
+          loading={convsQ.isLoading}
+          conversations={convs.filter((c) => FINISHED_Q.includes(c.quoteStatus))}
+          empty="Nenhum serviço concluído ainda."
+        />
+      )}
     </div>
   );
 }
@@ -51,16 +93,9 @@ function OpportunitiesTab() {
   const [maxDistance, setMaxDistance] = useState(50);
   const [maxPrice, setMaxPrice] = useState(0); // 0 = sem limite
 
-  // Novos = orçamentos onde o prestador ainda não abriu conversa.
   const list = useMemo(() => (quotes ?? []).filter((q) => !q.myConversationId), [quotes]);
-  const categories = useMemo(
-    () => Array.from(new Set(list.map((q) => q.categoryName))).sort(),
-    [list],
-  );
-  const priceCap = useMemo(
-    () => Math.max(0, ...list.map((q) => (q.budgetMaxCents ?? 0) / 100)),
-    [list],
-  );
+  const categories = useMemo(() => Array.from(new Set(list.map((q) => q.categoryName))).sort(), [list]);
+  const priceCap = useMemo(() => Math.max(0, ...list.map((q) => (q.budgetMaxCents ?? 0) / 100)), [list]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -82,7 +117,7 @@ function OpportunitiesTab() {
           return (b.budgetMaxCents ?? 0) - (a.budgetMaxCents ?? 0);
         case 'data':
           return b.createdAt.localeCompare(a.createdAt);
-        default: // urgencia: menos dias restantes primeiro
+        default:
           return computeUrgency(a.createdAt).daysLeft - computeUrgency(b.createdAt).daysLeft;
       }
     });
@@ -94,7 +129,6 @@ function OpportunitiesTab() {
 
   return (
     <div className="space-y-4">
-      {/* Filtros */}
       <Card className="space-y-3 p-3.5">
         <Input
           placeholder="Buscar por cliente, categoria…"
@@ -151,7 +185,7 @@ function OpportunitiesTab() {
         <EmptyState
           icon={<IconLocation size={26} />}
           title="Nenhuma oportunidade nova"
-          hint="Ajuste os filtros ou sua área de atendimento. Trabalhos já iniciados ficam em “Em andamento”."
+          hint="Ajuste os filtros ou sua área de atendimento. Trabalhos já iniciados ficam nas outras abas."
         />
       ) : (
         <ul className="space-y-3">
@@ -212,68 +246,148 @@ function OpportunityCard({ quote: q, onView }: { quote: ProviderQuote; onView: (
   );
 }
 
-// ───────── Em andamento: conversas/trabalhos já iniciados ─────────
-function WorksTab() {
-  const { data, isLoading, isError, error } = useMyConversations();
+// ───────── Lista de trabalhos (negociação / execução / finalizados) ─────────
+type WorksVariant = 'negotiation' | 'execution' | 'finished';
+
+function WorksList({
+  variant,
+  conversations,
+  loading,
+  empty,
+}: {
+  variant: WorksVariant;
+  conversations: ConversationSummary[];
+  loading?: boolean;
+  empty: string;
+}) {
   const navigate = useNavigate();
   const [openConv, setOpenConv] = useState<string | null>(null);
+  const [sort, setSort] = useState<'recent' | 'old'>('recent');
 
-  if (isLoading) return <Spinner label="Carregando…" />;
-  if (isError) return <p className="text-danger">{(error as Error).message}</p>;
-  if (!data || data.length === 0) {
-    return (
-      <EmptyState
-        icon={<IconBusiness size={26} />}
-        title="Nenhum trabalho em andamento"
-        hint="Abra uma oportunidade e envie sua proposta para começar."
-      />
+  const activityAt = (c: ConversationSummary) => c.lastMessage?.createdAt ?? '';
+  const sorted = useMemo(() => {
+    const arr = [...conversations];
+    arr.sort((a, b) =>
+      sort === 'recent' ? activityAt(b).localeCompare(activityAt(a)) : activityAt(a).localeCompare(activityAt(b)),
     );
+    return arr;
+  }, [conversations, sort]);
+
+  if (loading) return <Spinner label="Carregando…" />;
+  if (conversations.length === 0) {
+    return <EmptyState icon={<IconBusiness size={26} />} title="Nada por aqui" hint={empty} />;
   }
 
   return (
-    <>
-      <ul className="space-y-3">
-        {data.map((c) => (
-          <li key={c.id}>
-            <Card className="p-4">
-              <div className="flex items-start gap-3">
-                <Avatar name={c.counterpartName} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate font-semibold">{c.counterpartName}</span>
-                    {c.latestProposal && (
-                      <span className="shrink-0 font-semibold text-primary">
-                        {formatBRL(c.latestProposal.amountCents)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span className="truncate text-sm text-text-muted">{c.lastMessage?.body ?? '—'}</span>
-                    {c.status !== 'ACTIVE' && (
-                      <StatusChip label="Encerrada" varName="--color-status-canceled" size="sm" />
-                    )}
-                  </div>
-                </div>
-              </div>
+    <div className="space-y-3">
+      {variant === 'negotiation' && (
+        <div className="flex justify-end">
+          <Select
+            aria-label="Ordenar"
+            options={[
+              { value: 'recent', label: 'Atividade recente' },
+              { value: 'old', label: 'Mais antigos' },
+            ]}
+            value={sort}
+            onChange={(v) => setSort(v as 'recent' | 'old')}
+          />
+        </div>
+      )}
 
-              <div className="mt-3 flex items-center justify-end gap-2">
-                <Button size="sm" variant="secondary" onClick={() => navigate(`/orcamento/${c.quoteId}`)}>
-                  Ver orçamento
-                </Button>
-                <Button size="sm" onClick={() => setOpenConv(c.id)} startContent={<IconChat size={15} />}>
-                  Abrir conversa
-                </Button>
-              </div>
-            </Card>
+      <ul className="space-y-3">
+        {sorted.map((c) => (
+          <li key={c.id}>
+            <WorkCard
+              conv={c}
+              variant={variant}
+              onView={() => navigate(`/orcamento/${c.quoteId}`)}
+              onOpenChat={() => setOpenConv(c.id)}
+            />
           </li>
         ))}
       </ul>
 
-      <ConversationDrawer
-        conversationId={openConv}
-        isOpen={openConv !== null}
-        onClose={() => setOpenConv(null)}
-      />
-    </>
+      <ConversationDrawer conversationId={openConv} isOpen={openConv !== null} onClose={() => setOpenConv(null)} />
+    </div>
+  );
+}
+
+/** Indicador de atenção (só na aba Em negociação): o que precisa de ação. */
+function attentionBadge(c: ConversationSummary): { label: string; className: string } | null {
+  const lm = c.lastMessage;
+  // Última mensagem foi do cliente (senderId = contraparte) → precisa responder.
+  if (lm && lm.senderId && lm.senderId === c.counterpartId) {
+    return { label: 'Cliente respondeu', className: 'bg-amber-500/15 text-amber-300' };
+  }
+  if (!c.latestProposal) {
+    return { label: 'Envie uma proposta', className: 'bg-sky-500/15 text-sky-300' };
+  }
+  if (c.quoteStatus === 'WAITING_PAYMENT') {
+    return { label: 'Aguardando pagamento', className: 'bg-emerald-500/15 text-emerald-300' };
+  }
+  return { label: 'Aguardando cliente', className: 'bg-content2 text-text-muted' };
+}
+
+function relative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.round(diff / 60_000);
+  if (min < 1) return 'agora';
+  if (min < 60) return `${min}m`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.round(h / 24)}d`;
+}
+
+function WorkCard({
+  conv: c,
+  variant,
+  onView,
+  onOpenChat,
+}: {
+  conv: ConversationSummary;
+  variant: WorksVariant;
+  onView: () => void;
+  onOpenChat: () => void;
+}) {
+  const badge = variant === 'negotiation' ? attentionBadge(c) : null;
+  return (
+    <Card className="p-4">
+      <div className="flex items-start gap-3">
+        <Avatar name={c.counterpartName} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate font-semibold">{c.counterpartName}</span>
+            {c.latestProposal && (
+              <span className="shrink-0 font-semibold text-primary">{formatBRL(c.latestProposal.amountCents)}</span>
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-sm text-text-muted">{c.lastMessage?.body ?? '—'}</p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {badge ? (
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.className}`}>
+                {badge.label}
+              </span>
+            ) : (
+              <StatusChip status={c.quoteStatus} size="sm" />
+            )}
+            {c.lastMessage && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-text-muted">
+                <IconClock size={11} /> {relative(c.lastMessage.createdAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <Button size="sm" variant="secondary" onClick={onView}>
+          Ver orçamento
+        </Button>
+        <Button size="sm" onClick={onOpenChat} startContent={<IconChat size={15} />}>
+          Abrir conversa
+        </Button>
+      </div>
+    </Card>
   );
 }
