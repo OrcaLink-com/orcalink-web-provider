@@ -101,6 +101,16 @@ export interface ProviderQuote {
   createdAt: string;
 }
 
+export interface ProviderQuoteImage {
+  id: string;
+  url: string;
+}
+
+/** Detalhe do orçamento visto pelo prestador (inclui imagens). */
+export interface ProviderQuoteDetail extends ProviderQuote {
+  images: ProviderQuoteImage[];
+}
+
 export interface ServiceArea {
   latitude: number | null;
   longitude: number | null;

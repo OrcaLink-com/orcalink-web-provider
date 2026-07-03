@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Slider } from '@heroui/react';
 import { useMyConversations, useOpenQuotes } from '../../lib/queries';
-import { api } from '../../lib/api';
 import { formatBRL, formatDateTime } from '../../lib/format';
 import {
   Avatar,
@@ -17,34 +16,34 @@ import {
   StatusChip,
 } from '../../components/ui';
 import type { Segment } from '../../components/ui';
-import { IconBusiness, IconLocation, IconSearch, IconUser } from '../../components/icons';
+import { IconBusiness, IconChat, IconLocation, IconSearch, IconUser } from '../../components/icons';
+import { ConversationDrawer } from '../conversations/ConversationDrawer';
 import { computeUrgency, URGENCY_VAR } from './urgency';
 import type { ProviderQuote } from '../../lib/types';
 
-type Tab = 'oportunidades' | 'conversas';
+type Tab = 'oportunidades' | 'andamento';
 type Sort = 'urgencia' | 'distancia' | 'data' | 'valor';
 
 export function NegociosPage() {
   const [tab, setTab] = useState<Tab>('oportunidades');
   const tabs: Segment<Tab>[] = [
     { value: 'oportunidades', label: 'Oportunidades' },
-    { value: 'conversas', label: 'Conversas' },
+    { value: 'andamento', label: 'Em andamento' },
   ];
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Negócios" subtitle="Encontre trabalhos e acompanhe suas conversas." />
+      <PageHeader title="Trabalhos" subtitle="Novas oportunidades e os trabalhos em andamento." />
       <SegmentedTabs segments={tabs} value={tab} onChange={setTab} />
-      {tab === 'oportunidades' ? <OpportunitiesTab /> : <ConversationsTab />}
+      {tab === 'oportunidades' ? <OpportunitiesTab /> : <WorksTab />}
     </div>
   );
 }
 
-// ───────── Oportunidades ─────────
+// ───────── Oportunidades: só orçamentos NOVOS (sem interação do prestador) ─────────
 function OpportunitiesTab() {
   const { data: quotes, isLoading, isError, error } = useOpenQuotes();
   const navigate = useNavigate();
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
@@ -52,7 +51,8 @@ function OpportunitiesTab() {
   const [maxDistance, setMaxDistance] = useState(50);
   const [maxPrice, setMaxPrice] = useState(0); // 0 = sem limite
 
-  const list = quotes ?? [];
+  // Novos = orçamentos onde o prestador ainda não abriu conversa.
+  const list = useMemo(() => (quotes ?? []).filter((q) => !q.myConversationId), [quotes]);
   const categories = useMemo(
     () => Array.from(new Set(list.map((q) => q.categoryName))).sort(),
     [list],
@@ -88,16 +88,6 @@ function OpportunitiesTab() {
     });
     return arr;
   }, [list, search, category, sort, maxDistance, maxPrice]);
-
-  async function open(quoteId: string) {
-    setBusyId(quoteId);
-    try {
-      const { conversationId } = await api.startConversation(quoteId);
-      navigate(`/conversa/${conversationId}`);
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   if (isLoading) return <Spinner label="Carregando oportunidades…" />;
   if (isError) return <p className="text-danger">{(error as Error).message}</p>;
@@ -160,14 +150,14 @@ function OpportunitiesTab() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<IconLocation size={26} />}
-          title="Nenhuma oportunidade"
-          hint="Ajuste os filtros ou sua área de atendimento."
+          title="Nenhuma oportunidade nova"
+          hint="Ajuste os filtros ou sua área de atendimento. Trabalhos já iniciados ficam em “Em andamento”."
         />
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="space-y-3">
           {filtered.map((q) => (
             <li key={q.id}>
-              <OpportunityCard quote={q} onOpen={() => open(q.id)} busy={busyId === q.id} />
+              <OpportunityCard quote={q} onView={() => navigate(`/orcamento/${q.id}`)} />
             </li>
           ))}
         </ul>
@@ -176,7 +166,7 @@ function OpportunitiesTab() {
   );
 }
 
-function OpportunityCard({ quote: q, onOpen, busy }: { quote: ProviderQuote; onOpen: () => void; busy: boolean }) {
+function OpportunityCard({ quote: q, onView }: { quote: ProviderQuote; onView: () => void }) {
   const u = computeUrgency(q.createdAt);
   return (
     <Card className="p-4">
@@ -208,61 +198,82 @@ function OpportunityCard({ quote: q, onOpen, busy }: { quote: ProviderQuote; onO
         )}
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2">
+      <div className="mt-3 flex items-center justify-between gap-2">
         {q.requiresVisit ? (
           <StatusChip label="Pede visita" varName="--color-status-waiting" size="sm" />
         ) : (
           <span />
         )}
-        <Button size="sm" onClick={onOpen} disabled={busy}>
-          {q.myConversationId ? 'Continuar' : 'Propor'}
+        <Button size="sm" onClick={onView}>
+          Visualizar orçamento
         </Button>
       </div>
     </Card>
   );
 }
 
-// ───────── Conversas ─────────
-function ConversationsTab() {
+// ───────── Em andamento: conversas/trabalhos já iniciados ─────────
+function WorksTab() {
   const { data, isLoading, isError, error } = useMyConversations();
+  const navigate = useNavigate();
+  const [openConv, setOpenConv] = useState<string | null>(null);
+
   if (isLoading) return <Spinner label="Carregando…" />;
   if (isError) return <p className="text-danger">{(error as Error).message}</p>;
   if (!data || data.length === 0) {
     return (
       <EmptyState
         icon={<IconBusiness size={26} />}
-        title="Nenhuma conversa ainda"
-        hint="Responda uma oportunidade para começar."
+        title="Nenhum trabalho em andamento"
+        hint="Abra uma oportunidade e envie sua proposta para começar."
       />
     );
   }
+
   return (
-    <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-      {data.map((c) => (
-        <li key={c.id}>
-          <Card to={`/conversa/${c.id}`} className="p-3.5">
-            <div className="flex items-start gap-3">
-              <Avatar name={c.counterpartName} />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-semibold">{c.counterpartName}</span>
-                  {c.latestProposal && (
-                    <span className="shrink-0 font-semibold text-primary">
-                      {formatBRL(c.latestProposal.amountCents)}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="truncate text-sm text-text-muted">{c.lastMessage?.body ?? '—'}</span>
-                  {c.status !== 'ACTIVE' && (
-                    <StatusChip label="Encerrada" varName="--color-status-canceled" size="sm" />
-                  )}
+    <>
+      <ul className="space-y-3">
+        {data.map((c) => (
+          <li key={c.id}>
+            <Card className="p-4">
+              <div className="flex items-start gap-3">
+                <Avatar name={c.counterpartName} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-semibold">{c.counterpartName}</span>
+                    {c.latestProposal && (
+                      <span className="shrink-0 font-semibold text-primary">
+                        {formatBRL(c.latestProposal.amountCents)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="truncate text-sm text-text-muted">{c.lastMessage?.body ?? '—'}</span>
+                    {c.status !== 'ACTIVE' && (
+                      <StatusChip label="Encerrada" varName="--color-status-canceled" size="sm" />
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        </li>
-      ))}
-    </ul>
+
+              <div className="mt-3 flex items-center justify-end gap-2">
+                <Button size="sm" variant="secondary" onClick={() => navigate(`/orcamento/${c.quoteId}`)}>
+                  Ver orçamento
+                </Button>
+                <Button size="sm" onClick={() => setOpenConv(c.id)} startContent={<IconChat size={15} />}>
+                  Abrir conversa
+                </Button>
+              </div>
+            </Card>
+          </li>
+        ))}
+      </ul>
+
+      <ConversationDrawer
+        conversationId={openConv}
+        isOpen={openConv !== null}
+        onClose={() => setOpenConv(null)}
+      />
+    </>
   );
 }

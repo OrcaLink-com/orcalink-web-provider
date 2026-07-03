@@ -5,6 +5,7 @@ import type { CreateProposalInput } from './types';
 export const queryKeys = {
   me: ['me'] as const,
   openQuotes: ['provider', 'quotes'] as const,
+  quoteDetail: (id: string) => ['provider', 'quote', id] as const,
   myConversations: ['provider', 'conversations'] as const,
   messages: (id: string) => ['conversations', id, 'messages'] as const,
   pricing: (quoteId: string) => ['pricing', quoteId] as const,
@@ -167,6 +168,14 @@ export function useOpenQuotes() {
     queryKey: queryKeys.openQuotes,
     queryFn: api.listOpenQuotes,
     refetchInterval: 8000,
+  });
+}
+
+export function useProviderQuote(quoteId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.quoteDetail(quoteId ?? 'none'),
+    queryFn: () => api.getQuoteDetail(quoteId as string),
+    enabled: Boolean(quoteId),
   });
 }
 

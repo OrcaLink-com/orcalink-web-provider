@@ -22,7 +22,7 @@ export function Sidebar() {
 
       <nav className="mt-6 space-y-1">
         <Item to="/" icon={<IconHome size={20} />} label="Home" end />
-        <Item to="/negocios" icon={<IconBusiness size={20} />} label="Negócios" />
+        <Item to="/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
         <Item to="/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
         <Item to="/eu" icon={<IconUser size={20} />} label="Eu" />
       </nav>

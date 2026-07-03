@@ -9,6 +9,7 @@ import type {
   Proposal,
   ProviderDashboard,
   ProviderQuote,
+  ProviderQuoteDetail,
   ProviderVisit,
   AvailableSlotsResponse,
   NotificationsInbox,
@@ -161,6 +162,9 @@ export const api = {
   // Prestador
   listOpenQuotes() {
     return request<ProviderQuote[]>('/provider/quotes');
+  },
+  getQuoteDetail(quoteId: string) {
+    return request<ProviderQuoteDetail>(`/provider/quotes/${quoteId}`);
   },
   listMyConversations() {
     return request<ConversationSummary[]>('/provider/conversations');

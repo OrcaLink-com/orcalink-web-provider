@@ -11,6 +11,7 @@ const LoginPage = lazy(() => import('./features/auth/LoginPage').then((m) => ({ 
 const PendingApproval = lazy(() => import('./features/auth/PendingApproval').then((m) => ({ default: m.PendingApproval })));
 const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })));
 const NegociosPage = lazy(() => import('./features/negocios/NegociosPage').then((m) => ({ default: m.NegociosPage })));
+const QuoteDetailPage = lazy(() => import('./features/quotes/QuoteDetailPage').then((m) => ({ default: m.QuoteDetailPage })));
 const ConversationPage = lazy(() => import('./features/conversations/ConversationPage').then((m) => ({ default: m.ConversationPage })));
 const ServiceAreaPage = lazy(() => import('./features/area/ServiceAreaPage').then((m) => ({ default: m.ServiceAreaPage })));
 const SchedulePage = lazy(() => import('./features/agenda/SchedulePage').then((m) => ({ default: m.SchedulePage })));
@@ -63,6 +64,7 @@ function Authenticated() {
           <Route path="agenda" element={<SchedulePage />} />
           <Route path="area" element={<ServiceAreaPage />} />
           <Route path="eu" element={<EuPage />} />
+          <Route path="orcamento/:quoteId" element={<QuoteDetailPage />} />
           <Route path="conversa/:conversationId" element={<ConversationPage />} />
           {/* Compat com links antigos */}
           <Route path="oportunidades" element={<Navigate to="/negocios" replace />} />

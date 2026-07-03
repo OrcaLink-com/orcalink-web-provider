@@ -3,14 +3,14 @@ import type { ReactNode } from 'react';
 import { useNotifications } from '../lib/queries';
 import { IconHome, IconBusiness, IconAgenda, IconUser } from './icons';
 
-/** Navegação inferior do app Prestador: 🏠 Hoje · 💼 Negócios · 📅 Agenda · 👤 Eu. */
+/** Navegação inferior do app Prestador: 🏠 Home · 💼 Trabalhos · 📅 Agenda · 👤 Eu. */
 export function TabBar() {
   const q = useNotifications();
   const unread = q.data?.unreadCount ?? 0;
   return (
     <nav className="sticky bottom-0 z-20 flex border-t border-border bg-background/85 backdrop-blur-lg lg:hidden">
       <Tab to="/" icon={<IconHome size={22} />} label="Home" />
-      <Tab to="/negocios" icon={<IconBusiness size={22} />} label="Negócios" badge={unread} />
+      <Tab to="/negocios" icon={<IconBusiness size={22} />} label="Trabalhos" badge={unread} />
       <Tab to="/agenda" icon={<IconAgenda size={22} />} label="Agenda" />
       <Tab to="/eu" icon={<IconUser size={22} />} label="Eu" />
     </nav>
