@@ -8,6 +8,7 @@ import type {
   PricingView,
   Proposal,
   ProviderDashboard,
+  ProviderFinance,
   ProviderQuote,
   ProviderQuoteDetail,
   ProviderVisit,
@@ -172,6 +173,10 @@ export const api = {
   /** Métricas do dashboard (Home). */
   getDashboard() {
     return request<ProviderDashboard>('/provider/me/dashboard');
+  },
+  /** Painel financeiro (recebíveis do próprio prestador). */
+  getFinance() {
+    return request<ProviderFinance>('/provider/me/finance');
   },
   startConversation(quoteId: string) {
     return request<{ conversationId: string }>(`/provider/quotes/${quoteId}/start`, {

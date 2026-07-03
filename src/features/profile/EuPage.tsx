@@ -1,7 +1,7 @@
 import { useAuth } from '../../auth/AuthContext';
 import { useRating } from '../../lib/queries';
 import { Avatar, Button, Card, ListRow, RatingStars } from '../../components/ui';
-import { IconAgenda, IconArea, IconLogout } from '../../components/icons';
+import { IconAgenda, IconArea, IconInbox, IconWallet, IconLogout } from '../../components/icons';
 
 /** "Eu" do prestador: reputação + Meu negócio (área, agenda) + sair. */
 export function EuPage() {
@@ -26,6 +26,8 @@ export function EuPage() {
       <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Meu negócio</h2>
         <Card className="divide-y divide-border p-0">
+          <ListRow icon={<IconWallet size={18} />} title="Financeiro" subtitle="Recebimentos e repasses" to="/financeiro" />
+          <ListRow icon={<IconInbox size={18} />} title="Notificações" to="/inbox" />
           <ListRow icon={<IconArea size={18} />} title="Área de atendimento" to="/area" />
           <ListRow icon={<IconAgenda size={18} />} title="Disponibilidade & bloqueios" to="/agenda" />
         </Card>

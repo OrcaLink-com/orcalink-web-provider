@@ -5,7 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { NotificationsBell } from './NotificationsBell';
 import { useNotifications } from '../lib/queries';
 import { Avatar } from './ui';
-import { IconHome, IconBusiness, IconAgenda, IconInbox, IconUser, IconLogout } from './icons';
+import { IconHome, IconBusiness, IconAgenda, IconInbox, IconWallet, IconUser, IconLogout } from './icons';
 
 /** Sidebar de navegação (desktop ≥lg). No mobile a navegação fica na bottom TabBar. */
 export function Sidebar() {
@@ -27,6 +27,7 @@ export function Sidebar() {
         <Item to="/" icon={<IconHome size={20} />} label="Home" end />
         <Item to="/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
         <Item to="/inbox" icon={<IconInbox size={20} />} label="Notificações" badge={unread} />
+        <Item to="/financeiro" icon={<IconWallet size={20} />} label="Financeiro" />
         <Item to="/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
         <Item to="/eu" icon={<IconUser size={20} />} label="Eu" />
       </nav>

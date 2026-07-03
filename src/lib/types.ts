@@ -114,6 +114,28 @@ export interface ProviderQuoteDetail extends ProviderQuote {
   images: ProviderQuoteImage[];
 }
 
+export interface ProviderFinanceEntry {
+  paymentId: string;
+  quoteId: string;
+  categoryName: string;
+  clientName: string;
+  netCents: number;
+  status: string;
+  paidAt: string | null;
+  releasedAt: string | null;
+}
+
+export interface ProviderFinance {
+  availableCents: number;
+  blockedCents: number;
+  processingCents: number;
+  totalReceivedCents: number;
+  releasedCount: number;
+  blockedCount: number;
+  payouts: ProviderFinanceEntry[];
+  escrow: ProviderFinanceEntry[];
+}
+
 export interface ServiceArea {
   latitude: number | null;
   longitude: number | null;

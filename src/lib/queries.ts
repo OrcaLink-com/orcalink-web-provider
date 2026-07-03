@@ -17,7 +17,12 @@ export const queryKeys = {
   scheduleBlocks: ['provider', 'blocks'] as const,
   myVisits: ['provider', 'my-visits'] as const,
   dashboard: ['provider', 'dashboard'] as const,
+  finance: ['provider', 'finance'] as const,
 };
+
+export function useProviderFinance() {
+  return useQuery({ queryKey: queryKeys.finance, queryFn: api.getFinance });
+}
 
 export function useRating() {
   return useQuery({ queryKey: queryKeys.rating, queryFn: api.getRating });

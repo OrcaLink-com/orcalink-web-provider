@@ -17,6 +17,7 @@ const ServiceAreaPage = lazy(() => import('./features/area/ServiceAreaPage').the
 const SchedulePage = lazy(() => import('./features/agenda/SchedulePage').then((m) => ({ default: m.SchedulePage })));
 const EuPage = lazy(() => import('./features/profile/EuPage').then((m) => ({ default: m.EuPage })));
 const InboxPage = lazy(() => import('./features/inbox/InboxPage').then((m) => ({ default: m.InboxPage })));
+const FinancePage = lazy(() => import('./features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 
 function Loading() {
   return <Spinner label="Carregando…" />;
@@ -66,6 +67,7 @@ function Authenticated() {
           <Route path="area" element={<ServiceAreaPage />} />
           <Route path="eu" element={<EuPage />} />
           <Route path="inbox" element={<InboxPage />} />
+          <Route path="financeiro" element={<FinancePage />} />
           <Route path="orcamento/:quoteId" element={<QuoteDetailPage />} />
           <Route path="conversa/:conversationId" element={<ConversationPage />} />
           {/* Compat com links antigos */}
