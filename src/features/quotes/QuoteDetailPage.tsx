@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProviderQuote, queryKeys } from '../../lib/queries';
 import { api } from '../../lib/api';
@@ -21,6 +21,16 @@ export function QuoteDetailPage() {
 
   const [openConv, setOpenConv] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+
+  // Abertura do chat pela notificação (toast) → abre o Drawer da conversa.
+  const location = useLocation();
+  const openChat = (location.state as { openChat?: string } | null)?.openChat;
+  useEffect(() => {
+    if (openChat) {
+      setOpenConv(openChat);
+      window.history.replaceState({}, '');
+    }
+  }, [openChat]);
 
   async function startAndOpen() {
     if (quote?.myConversationId) {

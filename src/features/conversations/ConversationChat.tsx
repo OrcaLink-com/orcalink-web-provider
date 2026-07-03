@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
   useAvailableSlots,
+  useCompleteVisit,
   useConfirmVisit,
   useCreateProposal,
   useMessages,
@@ -105,6 +106,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const hasPendingVisit = !!visitsForGate.data?.some(
     (v) => v.status === 'SUGGESTED' || v.status === 'RESCHEDULED',
   );
+  const hasConfirmedVisit = !!visitsForGate.data?.some(
+    (v) => v.type === 'IN_LOCO' && v.status === 'CONFIRMED',
+  );
   const nextStep = conversation
     ? computeNextStep({
         quoteStatus: conversation.quoteStatus,
@@ -114,6 +118,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         latestProposalStatus: conversation.latestProposal?.status,
         hasCompletedVisit,
         hasPendingVisit,
+        hasConfirmedVisit,
       })
     : null;
 
@@ -203,6 +208,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       peerTyping={peerTyping}
       highlightMessageId={highlightMessageId}
       disabled={!isActive}
+      autoFocusComposer
       onBack={onBack}
       headerBanner={headerBanner}
       aboveComposer={aboveComposer}
@@ -215,6 +221,7 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
   const visitsQ = useVisits(quoteId);
   const request = useRequestVisit(quoteId);
   const confirmVisit = useConfirmVisit(quoteId);
+  const completeVisit = useCompleteVisit(quoteId);
   const [type, setType] = useState<'IN_LOCO' | 'EXECUTION'>('IN_LOCO');
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedSlotISO, setSelectedSlotISO] = useState<string>('');
@@ -268,6 +275,16 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
                   className="rounded-md bg-primary px-2 py-0.5 text-xs font-medium text-white disabled:opacity-50"
                 >
                   Aceitar nova data
+                </button>
+              )}
+              {v.type === 'IN_LOCO' && v.status === 'CONFIRMED' && (
+                <button
+                  type="button"
+                  onClick={() => completeVisit.mutate(v.id)}
+                  disabled={completeVisit.isPending}
+                  className="rounded-md bg-status-finished px-2 py-0.5 text-xs font-medium text-white disabled:opacity-50"
+                >
+                  {completeVisit.isPending ? 'Salvando…' : 'Marcar como realizada'}
                 </button>
               )}
             </li>

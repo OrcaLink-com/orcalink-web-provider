@@ -281,6 +281,7 @@ export interface ConversationSummary {
   counterpartName: string;
   counterpartId: string;
   lastMessage?: Message;
+  unreadCount: number;
   latestProposal?: Proposal;
 }
 

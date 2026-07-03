@@ -350,10 +350,18 @@ function WorkCard({
   onOpenChat: () => void;
 }) {
   const badge = variant === 'negotiation' ? attentionBadge(c) : null;
+  const unread = c.unreadCount ?? 0;
   return (
-    <Card className="p-4">
+    <Card className={`p-4 ${unread > 0 ? 'border-primary/40 bg-primary/5' : ''}`}>
       <div className="flex items-start gap-3">
-        <Avatar name={c.counterpartName} />
+        <div className="relative shrink-0">
+          <Avatar name={c.counterpartName} />
+          {unread > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate font-semibold">{c.counterpartName}</span>
@@ -361,9 +369,16 @@ function WorkCard({
               <span className="shrink-0 font-semibold text-primary">{formatBRL(c.latestProposal.amountCents)}</span>
             )}
           </div>
-          <p className="mt-0.5 truncate text-sm text-text-muted">{c.lastMessage?.body ?? '—'}</p>
+          <p className={`mt-0.5 truncate text-sm ${unread > 0 ? 'font-medium text-foreground' : 'text-text-muted'}`}>
+            {c.lastMessage?.body ?? '—'}
+          </p>
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {unread > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                <IconChat size={11} /> {unread} nova{unread > 1 ? 's' : ''} mensage{unread > 1 ? 'ns' : 'm'}
+              </span>
+            )}
             {badge ? (
               <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.className}`}>
                 {badge.label}

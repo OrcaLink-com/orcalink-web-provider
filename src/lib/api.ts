@@ -27,6 +27,7 @@ import type {
   Visit,
   VisitType,
 } from './types';
+import { reconnectSocket } from './realtime';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -94,6 +95,8 @@ function tryRefresh(): Promise<boolean> {
       const data = (await res.json()) as TokenResponse;
       const user = getStoredUser();
       if (user) storeSession({ ...data, user });
+      // Reconecta o socket com o token novo (senão o realtime fica mudo após expirar).
+      reconnectSocket();
       return true;
     })
     .catch(() => false)
@@ -247,6 +250,10 @@ export const api = {
   /** Prestador confirma uma visita reagendada pelo cliente (vai-e-volta). */
   confirmVisit(visitId: string) {
     return request<Visit>(`/visits/${visitId}/confirm`, { method: 'POST' });
+  },
+  /** Prestador confirma que a visita técnica foi realizada (libera a proposta final). */
+  completeVisit(visitId: string) {
+    return request<Visit>(`/visits/${visitId}/complete`, { method: 'POST' });
   },
   /** Prestador inicia o serviço (EXECUCAO_AGENDADA → IN_PROGRESS). */
   startExecution(quoteId: string) {
