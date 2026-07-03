@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { useAuth } from '../auth/AuthContext';
 import { NotificationsBell } from './NotificationsBell';
+import { MessageToaster } from './MessageToaster';
 import { TabBar } from './TabBar';
 import { Sidebar } from './Sidebar';
 import { Avatar } from './ui';
@@ -13,6 +14,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-dvh bg-background">
+      <MessageToaster />
       <Sidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">

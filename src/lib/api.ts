@@ -1,5 +1,6 @@
 import type {
   AuthUser,
+  Category,
   ConversationSummary,
   CreateProposalInput,
   Me,
@@ -9,6 +10,7 @@ import type {
   Proposal,
   ProviderDashboard,
   ProviderFinance,
+  ProviderProfile,
   ProviderQuote,
   ProviderQuoteDetail,
   ProviderVisit,
@@ -19,6 +21,9 @@ import type {
   ScheduleBlock,
   ServiceArea,
   TokenResponse,
+  UpdateMeInput,
+  UpdateProviderProfileInput,
+  UploadResult,
   Visit,
   VisitType,
 } from './types';
@@ -150,6 +155,36 @@ export const api = {
   },
   me() {
     return request<Me>('/auth/me');
+  },
+  getProfile() {
+    return request<Me>('/auth/me');
+  },
+  updateMe(input: UpdateMeInput) {
+    return request<Me>('/auth/me', { ...jsonBody(input), method: 'PATCH' });
+  },
+  requestPasswordOtp() {
+    return request<{ sent: boolean; devCode?: string }>('/auth/password/otp', { method: 'POST' });
+  },
+  setPassword(input: { newPassword: string; code?: string; currentPassword?: string }) {
+    return request<{ ok: boolean }>('/auth/password', { ...jsonBody(input), method: 'PATCH' });
+  },
+  listCategories() {
+    return request<Category[]>('/categories', {}, false);
+  },
+  uploadImage(file: File) {
+    const form = new FormData();
+    form.append('file', file);
+    return request<UploadResult>('/uploads', { method: 'POST', body: form });
+  },
+  getProviderProfile() {
+    return request<ProviderProfile>('/provider/me/profile');
+  },
+  updateProviderProfile(input: UpdateProviderProfileInput) {
+    return request<ProviderProfile>('/provider/me/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
   },
   async logout() {
     const refreshToken = getRefresh();

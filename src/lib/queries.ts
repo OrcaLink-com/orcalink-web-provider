@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
-import type { CreateProposalInput } from './types';
+import type { CreateProposalInput, UpdateMeInput, UpdateProviderProfileInput } from './types';
 
 export const queryKeys = {
   me: ['me'] as const,
@@ -166,6 +166,55 @@ export function useStartExecution(quoteId: string) {
 
 export function useMe() {
   return useQuery({ queryKey: queryKeys.me, queryFn: api.me });
+}
+
+// ───────── Perfil ─────────
+export function useProfile() {
+  return useQuery({ queryKey: ['profile'] as const, queryFn: api.getProfile });
+}
+
+export function useUpdateMe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateMeInput) => api.updateMe(input),
+    onSuccess: (data) => {
+      qc.setQueryData(['profile'], data);
+      void qc.invalidateQueries({ queryKey: queryKeys.me });
+    },
+  });
+}
+
+export function useRequestPasswordOtp() {
+  return useMutation({ mutationFn: () => api.requestPasswordOtp() });
+}
+
+export function useSetPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { newPassword: string; code?: string; currentPassword?: string }) =>
+      api.setPassword(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['profile'] });
+    },
+  });
+}
+
+export function useCategories() {
+  return useQuery({ queryKey: ['categories'] as const, queryFn: api.listCategories, staleTime: 5 * 60 * 1000 });
+}
+
+export function useProviderProfile() {
+  return useQuery({ queryKey: ['provider', 'profile'] as const, queryFn: api.getProviderProfile });
+}
+
+export function useUpdateProviderProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateProviderProfileInput) => api.updateProviderProfile(input),
+    onSuccess: (data) => {
+      qc.setQueryData(['provider', 'profile'], data);
+    },
+  });
 }
 
 export function useOpenQuotes() {

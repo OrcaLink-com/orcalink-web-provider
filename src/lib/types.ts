@@ -63,7 +63,68 @@ export interface Me {
   name: string;
   email: string | null;
   phone: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  hasPassword: boolean;
   providerStatus: ProviderStatus | null;
+}
+
+/** Payload de atualização de dados pessoais + endereço (PATCH /auth/me). */
+export interface UpdateMeInput {
+  name?: string;
+  phone?: string;
+  avatarUrl?: string;
+  bio?: string;
+  zipCode?: string;
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+}
+
+export interface Category {
+  id: string;
+  slug: string;
+  name: string;
+  iconKey: string | null;
+}
+
+export interface UploadResult {
+  url: string;
+  key: string;
+}
+
+export interface ProviderSocial {
+  instagram?: string;
+  facebook?: string;
+  website?: string;
+  whatsapp?: string;
+}
+
+/** Perfil profissional (GET/PUT /provider/me/profile). */
+export interface ProviderProfile {
+  companyName: string | null;
+  bio: string | null;
+  coverUrl: string | null;
+  categoryIds: string[];
+  portfolio: string[];
+  social: ProviderSocial;
+}
+
+export interface UpdateProviderProfileInput {
+  companyName?: string;
+  bio?: string;
+  coverUrl?: string;
+  categoryIds?: string[];
+  portfolio?: string[];
+  social?: ProviderSocial;
 }
 
 export interface DashboardPoint {

@@ -1,6 +1,7 @@
+import { LuPencil } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { useRating } from '../../lib/queries';
-import { Avatar, Button, Card, ListRow, RatingStars } from '../../components/ui';
+import { Avatar, Button, ButtonLink, Card, ListRow, RatingStars } from '../../components/ui';
 import { IconAgenda, IconArea, IconInbox, IconWallet, IconLogout } from '../../components/icons';
 
 /** "Eu" do prestador: reputação + Meu negócio (área, agenda) + sair. */
@@ -13,7 +14,7 @@ export function EuPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Avatar name={user?.name ?? 'Você'} size="lg" />
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-lg font-semibold">{user?.name ?? 'Você'}</p>
           {rating && rating.ratingCount > 0 ? (
             <RatingStars value={rating.ratingAvg} count={rating.ratingCount} />
@@ -21,11 +22,15 @@ export function EuPage() {
             <p className="text-xs text-text-muted">Profissional · sem avaliações ainda</p>
           )}
         </div>
+        <ButtonLink to="/perfil" variant="secondary" size="sm" startContent={<LuPencil size={14} />}>
+          Editar
+        </ButtonLink>
       </div>
 
       <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Meu negócio</h2>
         <Card className="divide-y divide-border p-0">
+          <ListRow icon={<LuPencil size={18} />} title="Meu perfil" subtitle="Dados, negócio, endereço e senha" to="/perfil" />
           <ListRow icon={<IconWallet size={18} />} title="Financeiro" subtitle="Recebimentos e repasses" to="/financeiro" />
           <ListRow icon={<IconInbox size={18} />} title="Notificações" to="/inbox" />
           <ListRow icon={<IconArea size={18} />} title="Área de atendimento" to="/area" />

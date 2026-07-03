@@ -16,6 +16,7 @@ const ConversationPage = lazy(() => import('./features/conversations/Conversatio
 const ServiceAreaPage = lazy(() => import('./features/area/ServiceAreaPage').then((m) => ({ default: m.ServiceAreaPage })));
 const SchedulePage = lazy(() => import('./features/agenda/SchedulePage').then((m) => ({ default: m.SchedulePage })));
 const EuPage = lazy(() => import('./features/profile/EuPage').then((m) => ({ default: m.EuPage })));
+const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const InboxPage = lazy(() => import('./features/inbox/InboxPage').then((m) => ({ default: m.InboxPage })));
 const FinancePage = lazy(() => import('./features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
 
@@ -66,6 +67,7 @@ function Authenticated() {
           <Route path="agenda" element={<SchedulePage />} />
           <Route path="area" element={<ServiceAreaPage />} />
           <Route path="eu" element={<EuPage />} />
+          <Route path="perfil" element={<ProfilePage />} />
           <Route path="inbox" element={<InboxPage />} />
           <Route path="financeiro" element={<FinancePage />} />
           <Route path="orcamento/:quoteId" element={<QuoteDetailPage />} />

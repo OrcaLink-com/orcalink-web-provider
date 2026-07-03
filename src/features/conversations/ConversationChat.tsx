@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { LuCalendarPlus, LuFilePlus } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
+import { setActiveConversation } from '../../lib/activeChat';
 import {
   useAvailableSlots,
   useConfirmVisit,
@@ -14,10 +16,12 @@ import {
   useVisits,
 } from '../../lib/queries';
 import { formatBRL, formatDateTime } from '../../lib/format';
-import { useQuoteRealtime } from '../../lib/realtime';
+import { usePeerTyping, usePresence, useQuoteRealtime, useTypingSignal } from '../../lib/realtime';
 import { ChatConversationView } from '../../components/Chat';
 import type { ChatActionHandlers, ChatMessage, ChatParticipant } from '../../components/Chat';
 import { messagesToChat, toServiceStatus } from './chatAdapter';
+import { computeNextStep } from './nextStep';
+import { NextStepBanner } from '../../components/NextStepBanner';
 
 interface ConversationChatProps {
   conversationId: string;
@@ -33,6 +37,14 @@ interface ConversationChatProps {
  */
 export function ConversationChat({ conversationId, onBack }: ConversationChatProps) {
   const { user } = useAuth();
+  const location = useLocation();
+  const highlightMessageId = (location.state as { highlightMessageId?: string } | null)?.highlightMessageId;
+
+  // Marca esta conversa como "aberta" → o toaster não notifica mensagens dela.
+  useEffect(() => {
+    setActiveConversation(conversationId);
+    return () => setActiveConversation(null);
+  }, [conversationId]);
 
   const convsQ = useMyConversations();
   const messagesQ = useMessages(conversationId);
@@ -40,6 +52,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
 
   const conversation = convsQ.data?.find((c) => c.id === conversationId);
   useQuoteRealtime(conversation?.quoteId);
+  const presence = usePresence(conversation?.counterpartId);
+  const peerTyping = usePeerTyping(conversation?.quoteId, conversation?.counterpartId);
+  const notifyTyping = useTypingSignal(conversation?.quoteId);
 
   const isActive = conversation?.status === 'ACTIVE';
   const requiresVisit = conversation?.requiresVisit ?? false;
@@ -61,7 +76,13 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const [pane, setPane] = useState<'none' | 'proposal' | 'visit'>('none');
 
   const peer: ChatParticipant | null = conversation
-    ? { id: conversation.counterpartId, name: conversation.counterpartName, role: 'client', online: true }
+    ? {
+        id: conversation.counterpartId,
+        name: conversation.counterpartName,
+        role: 'client',
+        online: presence.online,
+        lastSeenAt: presence.lastSeenAt,
+      }
     : null;
 
   const messages = useMemo<ChatMessage[]>(() => {
@@ -74,14 +95,34 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
     onSendMessage: async (t) => {
       await sendMessage.mutateAsync(t);
     },
+    onTyping: notifyTyping,
   };
 
   if (!peer || !conversation) {
     return <p className="p-6 text-center text-sm text-text-muted">Carregando conversa…</p>;
   }
 
+  const hasPendingVisit = !!visitsForGate.data?.some(
+    (v) => v.status === 'SUGGESTED' || v.status === 'RESCHEDULED',
+  );
+  const nextStep = conversation
+    ? computeNextStep({
+        quoteStatus: conversation.quoteStatus,
+        viewerRole: 'provider',
+        requiresVisit,
+        latestProposalType: conversation.latestProposal?.type,
+        latestProposalStatus: conversation.latestProposal?.status,
+        hasCompletedVisit,
+        hasPendingVisit,
+      })
+    : null;
+
   const hasBanner = (selected && net !== undefined) || paid || canStartExecution || inProgress;
-  const headerBanner = hasBanner ? (
+  const headerBanner =
+    nextStep || hasBanner ? (
+      <>
+        {nextStep && <NextStepBanner step={nextStep} />}
+        {hasBanner && (
     <div className="space-y-2 border-b border-border bg-content1/60 px-3 py-2">
       {selected && net !== undefined && (
         <div className="flex items-center justify-between rounded-medium bg-status-finished/15 px-3 py-2 text-status-finished">
@@ -110,7 +151,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         </div>
       )}
     </div>
-  ) : undefined;
+        )}
+      </>
+    ) : undefined;
 
   const aboveComposer = isActive ? (
     pane === 'proposal' ? (
@@ -157,6 +200,8 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       messages={messages}
       handlers={handlers}
       loading={messagesQ.isLoading}
+      peerTyping={peerTyping}
+      highlightMessageId={highlightMessageId}
       disabled={!isActive}
       onBack={onBack}
       headerBanner={headerBanner}
