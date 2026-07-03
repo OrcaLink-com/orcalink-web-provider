@@ -3,12 +3,15 @@ import type { ReactNode } from 'react';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { useAuth } from '../auth/AuthContext';
 import { NotificationsBell } from './NotificationsBell';
+import { useNotifications } from '../lib/queries';
 import { Avatar } from './ui';
-import { IconHome, IconBusiness, IconAgenda, IconUser, IconLogout } from './icons';
+import { IconHome, IconBusiness, IconAgenda, IconInbox, IconUser, IconLogout } from './icons';
 
 /** Sidebar de navegação (desktop ≥lg). No mobile a navegação fica na bottom TabBar. */
 export function Sidebar() {
   const { user, logout } = useAuth();
+  const notif = useNotifications();
+  const unread = notif.data?.unreadCount ?? 0;
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-background px-3 py-5 lg:flex">
@@ -23,6 +26,7 @@ export function Sidebar() {
       <nav className="mt-6 space-y-1">
         <Item to="/" icon={<IconHome size={20} />} label="Home" end />
         <Item to="/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
+        <Item to="/inbox" icon={<IconInbox size={20} />} label="Notificações" badge={unread} />
         <Item to="/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
         <Item to="/eu" icon={<IconUser size={20} />} label="Eu" />
       </nav>
@@ -40,7 +44,19 @@ export function Sidebar() {
   );
 }
 
-function Item({ to, icon, label, end }: { to: string; icon: ReactNode; label: string; end?: boolean }) {
+function Item({
+  to,
+  icon,
+  label,
+  end,
+  badge,
+}: {
+  to: string;
+  icon: ReactNode;
+  label: string;
+  end?: boolean;
+  badge?: number;
+}) {
   return (
     <NavLink
       to={to}
@@ -53,6 +69,11 @@ function Item({ to, icon, label, end }: { to: string; icon: ReactNode; label: st
     >
       {icon}
       <span className="flex-1">{label}</span>
+      {badge != null && badge > 0 && (
+        <span className="min-w-[18px] rounded-full bg-danger px-1.5 text-center text-[10px] font-bold leading-[18px] text-white">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
     </NavLink>
   );
 }

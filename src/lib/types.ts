@@ -39,6 +39,9 @@ export type MessageType =
   | 'PROPOSAL'
   | 'PROPOSAL_ACCEPTED'
   | 'PROPOSAL_REJECTED'
+  | 'VISIT_REQUEST'
+  | 'VISIT_CONFIRMED'
+  | 'VISIT_RESCHEDULED'
   | 'SYSTEM';
 
 export interface AuthUser {
