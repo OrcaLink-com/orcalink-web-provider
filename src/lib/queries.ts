@@ -152,6 +152,17 @@ export function useConfirmVisit(quoteId: string | undefined) {
   });
 }
 
+export function useMarkServiceDone(quoteId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.markServiceDone(quoteId as string),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.myConversations });
+      if (quoteId) void qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
 export function useCompleteVisit(quoteId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

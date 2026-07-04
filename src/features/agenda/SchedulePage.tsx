@@ -20,7 +20,12 @@ function BlocksSection() {
 
   function fmt(iso: string): string {
     const d = new Date(iso);
-    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const tz = 'America/Sao_Paulo';
+    return (
+      d.toLocaleDateString('pt-BR', { timeZone: tz }) +
+      ' ' +
+      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: tz })
+    );
   }
 
   async function onAdd(e: React.FormEvent) {

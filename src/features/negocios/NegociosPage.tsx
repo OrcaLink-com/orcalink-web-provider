@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Slider } from '@heroui/react';
-import { useMyConversations, useOpenQuotes } from '../../lib/queries';
+import { useMyConversations, useOpenQuotes, useProviderProfile } from '../../lib/queries';
 import { formatBRL, formatDateTime } from '../../lib/format';
 import {
   Avatar,
@@ -85,7 +85,9 @@ export function NegociosPage() {
 // ───────── Oportunidades: só orçamentos NOVOS (sem interação do prestador) ─────────
 function OpportunitiesTab() {
   const { data: quotes, isLoading, isError, error } = useOpenQuotes();
+  const profileQ = useProviderProfile();
   const navigate = useNavigate();
+  const noCategories = profileQ.data && profileQ.data.categoryIds.length === 0;
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
@@ -126,6 +128,21 @@ function OpportunitiesTab() {
 
   if (isLoading) return <Spinner label="Carregando oportunidades…" />;
   if (isError) return <p className="text-danger">{(error as Error).message}</p>;
+
+  if (noCategories) {
+    return (
+      <EmptyState
+        icon={<IconBusiness size={26} />}
+        title="Escolha suas categorias"
+        hint="Só mostramos oportunidades das categorias que você atende. Configure as categorias no seu perfil para começar a receber trabalhos relevantes."
+        action={
+          <Button size="sm" onClick={() => navigate('/perfil')}>
+            Configurar perfil
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">

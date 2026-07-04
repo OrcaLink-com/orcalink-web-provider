@@ -306,6 +306,7 @@ export interface ConversationSummary {
   counterpartName: string;
   counterpartId: string;
   counterpartAvatarUrl?: string;
+  providerDoneAt?: string;
   lastMessage?: Message;
   unreadCount: number;
   latestProposal?: Proposal;

@@ -265,6 +265,10 @@ export const api = {
       { method: 'POST' },
     );
   },
+  /** Prestador marca o serviço como concluído (não libera pagamento; media a Orca Link). */
+  markServiceDone(quoteId: string) {
+    return request<{ ok: boolean }>(`/provider/quotes/${quoteId}/mark-done`, { method: 'POST' });
+  },
   // Reputação
   getRating() {
     return request<ProviderRating>('/provider/rating');

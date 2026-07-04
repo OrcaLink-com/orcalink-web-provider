@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LuCalendarClock, LuCalendarPlus, LuFilePlus, LuPlay } from 'react-icons/lu';
+import { LuCalendarClock, LuCalendarPlus, LuCircleCheck, LuFilePlus, LuPlay } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
@@ -8,6 +8,7 @@ import {
   useConfirmVisit,
   useCreateProposal,
   useMessages,
+  useMarkServiceDone,
   useMyConversations,
   usePricing,
   useProfile,
@@ -64,16 +65,24 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const hasCompletedVisit = !!visitsForGate.data?.some(
     (v) => v.type === 'IN_LOCO' && v.status === 'COMPLETED',
   );
-  const canSendFinal = !requiresVisit || hasCompletedVisit;
+  // Visita técnica em aberto (solicitada/aceita, ainda não confirmada realizada).
+  const hasActiveInLoco = !!visitsForGate.data?.some(
+    (v) => v.type === 'IN_LOCO' && ['PENDING', 'SUGGESTED', 'RESCHEDULED', 'CONFIRMED'].includes(v.status),
+  );
+  // Proposta final só libera com visita CONCLUÍDA (confirmada pelo cliente) ou
+  // quando não há visita alguma exigida/aberta.
+  const canSendFinal = hasCompletedVisit || (!requiresVisit && !hasActiveInLoco);
 
   const selected = conversation?.latestProposal?.status === 'APPROVED';
   const pricingQ = usePricing(conversation?.quoteId, selected);
   const net = pricingQ.data?.providerNetCents;
 
   const startExec = useStartExecution(conversation?.quoteId ?? '');
+  const markDone = useMarkServiceDone(conversation?.quoteId);
   const paid = conversation?.quoteStatus === 'PAID';
   const canStartExecution = conversation?.quoteStatus === 'EXECUTION_SCHEDULED';
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
+  const providerMarkedDone = Boolean(conversation?.providerDoneAt);
 
   const [pane, setPane] = useState<'none' | 'proposal' | 'visit'>('none');
 
@@ -138,9 +147,14 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
           <span className="font-bold">{formatBRL(net)}</span>
         </div>
       )}
-      {inProgress && (
+      {inProgress && !providerMarkedDone && (
         <div className="rounded-medium bg-status-scheduled/15 px-3 py-2 text-center text-sm text-status-scheduled">
           Execução em andamento — aguarde o cliente confirmar a conclusão.
+        </div>
+      )}
+      {inProgress && providerMarkedDone && (
+        <div className="rounded-medium bg-status-finished/15 px-3 py-2 text-center text-sm text-status-finished">
+          Você marcou como concluído. Aguardando o cliente confirmar — se não confirmar, a Orca Link analisa e libera.
         </div>
       )}
     </div>
@@ -179,9 +193,28 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
           }}
         />
       );
+    } else if (inProgress && !providerMarkedDone) {
+      nextAction = (
+        <NextActionCard
+          tone="green"
+          icon={<LuCircleCheck size={20} />}
+          title="Concluiu o serviço?"
+          description="Marque como concluído. O cliente confirma para liberar o pagamento; se não confirmar, a Orca Link media."
+          ctaLabel="Marcar serviço como concluído"
+          onCta={async () => {
+            await markDone.mutateAsync();
+          }}
+          confirm={{
+            description: 'Isso informa que, na sua visão, o serviço foi finalizado. O pagamento NÃO é liberado automaticamente — depende da confirmação do cliente ou da análise da Orca Link.',
+            confirmLabel: 'Sim, marcar concluído',
+          }}
+        />
+      );
     }
   }
 
+  // Fase de execução (após pagamento): o agendamento trata só de execução.
+  const execPhase = paid || canStartExecution || inProgress;
   const aboveComposer = isActive ? (
     pane === 'proposal' ? (
       <ProposalForm
@@ -194,14 +227,16 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
     ) : pane === 'visit' ? (
       <div className="border-t border-border bg-content1 p-3">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium text-primary">Agendar visita / execução</p>
+          <p className="text-sm font-medium text-primary">
+            {execPhase ? 'Agendar execução do serviço' : 'Solicitar visita técnica'}
+          </p>
           <button onClick={() => setPane('none')} className="text-xs text-text-muted hover:text-foreground">
             Fechar
           </button>
         </div>
-        <VisitsPanel quoteId={conversation.quoteId} />
+        <VisitsPanel quoteId={conversation.quoteId} mode={execPhase ? 'execution' : 'visit'} />
       </div>
-    ) : (
+    ) : execPhase ? undefined : (
       <div className="flex gap-2 border-t border-border bg-content1 px-2.5 pt-2">
         <button
           onClick={() => setPane('visit')}
@@ -245,18 +280,21 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   );
 }
 
-/* ───────── Agendar visita/execução (slots livres) ───────── */
-function VisitsPanel({ quoteId }: { quoteId: string }) {
+/* ───────── Agendar visita técnica (negociação) OU execução (após pagamento) ───────── */
+function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'execution' }) {
   const visitsQ = useVisits(quoteId);
   const request = useRequestVisit(quoteId);
   const confirmVisit = useConfirmVisit(quoteId);
-  const [type, setType] = useState<'IN_LOCO' | 'EXECUTION'>('IN_LOCO');
+  const type = mode === 'execution' ? 'EXECUTION' : 'IN_LOCO';
+  const noun = mode === 'execution' ? 'execução' : 'visita';
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedSlotISO, setSelectedSlotISO] = useState<string>('');
-  const [endsAt, setEndsAt] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const slotsQ = useAvailableSlots(date);
+
+  // Só mostra os agendamentos do MESMO tipo desta fase (não mistura visita técnica na execução).
+  const relevantVisits = (visitsQ.data ?? []).filter((v) => v.type === type);
 
   function onDateChange(v: string) {
     setDate(v);
@@ -271,13 +309,8 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
       return;
     }
     try {
-      await request.mutateAsync({
-        type,
-        scheduledAt: selectedSlotISO,
-        endsAt: type === 'EXECUTION' && endsAt ? new Date(endsAt).toISOString() : undefined,
-      });
+      await request.mutateAsync({ type, scheduledAt: selectedSlotISO });
       setSelectedSlotISO('');
-      setEndsAt('');
     } catch (err) {
       setError((err as Error).message);
     }
@@ -285,14 +318,13 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
 
   return (
     <div className="space-y-2">
-      {visitsQ.data && visitsQ.data.length > 0 && (
+      {relevantVisits.length > 0 && (
         <ul className="mb-2 space-y-1">
-          {visitsQ.data.map((v) => (
+          {relevantVisits.map((v) => (
             <li key={v.id} className="flex items-center justify-between gap-2 text-xs text-text-muted">
               <span>
-                {v.type === 'IN_LOCO' ? 'Visita técnica' : 'Execução'} ·{' '}
-                {v.scheduledAt ? formatDateTime(v.scheduledAt) : '—'}
-                {v.endsAt ? ` → ${formatDateTime(v.endsAt)}` : ''} · <strong>{v.status}</strong>
+                {mode === 'execution' ? 'Execução' : 'Visita técnica'} ·{' '}
+                {v.scheduledAt ? formatDateTime(v.scheduledAt) : '—'} · <strong>{v.status}</strong>
                 {v.status === 'RESCHEDULED' && ' (cliente sugeriu nova data)'}
               </span>
               {v.status === 'RESCHEDULED' && (
@@ -305,7 +337,7 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
                   Aceitar nova data
                 </button>
               )}
-              {v.type === 'IN_LOCO' && v.status === 'CONFIRMED' && (
+              {mode === 'visit' && v.status === 'CONFIRMED' && (
                 <span className="text-[11px] text-text-muted">Aguardando o cliente confirmar a realização</span>
               )}
             </li>
@@ -313,22 +345,12 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
         </ul>
       )}
       <form onSubmit={onSubmit} className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value as 'IN_LOCO' | 'EXECUTION')}
-            className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-          >
-            <option value="IN_LOCO">Visita técnica</option>
-            <option value="EXECUTION">Execução</option>
-          </select>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => onDateChange(e.target.value)}
-            className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-          />
-        </div>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => onDateChange(e.target.value)}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+        />
 
         {slotsQ.isLoading && <p className="text-xs text-text-muted">Carregando horários…</p>}
         {slotsQ.data?.reason === 'OFF_DAY' && (
@@ -339,7 +361,7 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
         )}
         {slotsQ.data?.reason === 'DAY_LIMIT_REACHED' && (
           <p className="rounded-md bg-card px-2 py-1 text-xs text-warning">
-            Limite de visitas atingido para esse dia. Escolha outra data.
+            Limite de agendamentos atingido para esse dia. Escolha outra data.
           </p>
         )}
         {slotsQ.data && slotsQ.data.slots.length > 0 && (
@@ -365,22 +387,13 @@ function VisitsPanel({ quoteId }: { quoteId: string }) {
           </div>
         )}
 
-        {type === 'EXECUTION' && selectedSlotISO && (
-          <input
-            type="datetime-local"
-            value={endsAt}
-            onChange={(e) => setEndsAt(e.target.value)}
-            title="Previsão de conclusão"
-            className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-          />
-        )}
         {error && <p className="text-xs text-danger">{error}</p>}
         <button
           type="submit"
           disabled={request.isPending || !selectedSlotISO}
           className="w-full rounded-md border border-primary px-3 py-1.5 text-sm font-medium text-primary disabled:opacity-50"
         >
-          {request.isPending ? 'Enviando…' : 'Sugerir horário'}
+          {request.isPending ? 'Enviando…' : mode === 'execution' ? 'Agendar execução' : `Sugerir horário da ${noun}`}
         </button>
       </form>
     </div>
