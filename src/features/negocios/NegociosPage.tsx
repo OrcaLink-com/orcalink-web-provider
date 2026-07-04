@@ -223,9 +223,9 @@ function OpportunityCard({ quote: q, onView }: { quote: ProviderQuote; onView: (
     <Card className="p-4">
       <div className="mb-1.5 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold">{q.categoryName}</p>
+          <p className="truncate font-semibold">{q.title ?? q.categoryName}</p>
           <p className="mt-0.5 flex items-center gap-1 text-xs text-text-muted">
-            <IconUser size={12} /> {q.clientName}
+            <IconUser size={12} /> {q.clientName} · {q.categoryName}
           </p>
         </div>
         {u.urgent ? (
@@ -381,11 +381,12 @@ function WorkCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate font-semibold">{c.counterpartName}</span>
+            <span className="truncate font-semibold">{c.quoteTitle ?? c.counterpartName}</span>
             {c.latestProposal && (
               <span className="shrink-0 font-semibold text-primary">{formatBRL(c.latestProposal.amountCents)}</span>
             )}
           </div>
+          {c.quoteTitle && <p className="truncate text-xs text-text-muted">{c.counterpartName}</p>}
           <p className={`mt-0.5 truncate text-sm ${unread > 0 ? 'font-medium text-foreground' : 'text-text-muted'}`}>
             {c.lastMessage?.body ?? '—'}
           </p>

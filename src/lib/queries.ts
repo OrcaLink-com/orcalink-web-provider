@@ -152,6 +152,33 @@ export function useConfirmVisit(quoteId: string | undefined) {
   });
 }
 
+export function useRescheduleVisit(quoteId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { visitId: string; scheduledAt: string; reason?: string }) =>
+      api.rescheduleVisit(input.visitId, input.scheduledAt, input.reason),
+    onSuccess: () => {
+      if (quoteId) void qc.invalidateQueries({ queryKey: queryKeys.visits(quoteId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.myConversations });
+      void qc.invalidateQueries({ queryKey: queryKeys.myVisits });
+      void qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
+export function useCancelVisit(quoteId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { visitId: string; reason: string }) => api.cancelVisit(input.visitId, input.reason),
+    onSuccess: () => {
+      if (quoteId) void qc.invalidateQueries({ queryKey: queryKeys.visits(quoteId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.myConversations });
+      void qc.invalidateQueries({ queryKey: queryKeys.myVisits });
+      void qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
 export function useMarkServiceDone(quoteId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMyVisits } from '../../lib/queries';
+import { useCancelVisit, useMyVisits, useRescheduleVisit } from '../../lib/queries';
 import { formatDateTime } from '../../lib/format';
+import { VisitManageCard } from '../../components/VisitManageCard';
 import {
   Button,
   Card,
@@ -128,6 +129,8 @@ function Legend() {
 }
 
 function VisitDetail({ visit: v }: { visit: ProviderVisit }) {
+  const reschedule = useRescheduleVisit(v.quoteId);
+  const cancel = useCancelVisit(v.quoteId);
   return (
     <div className="space-y-2 text-sm">
       <Row label="Cliente" value={v.clientName} />
@@ -145,6 +148,20 @@ function VisitDetail({ visit: v }: { visit: ProviderVisit }) {
       </div>
       {v.quoteDescription && (
         <div className="rounded-medium bg-content1 p-2 text-xs text-text-muted">{v.quoteDescription}</div>
+      )}
+      {v.status === 'CONFIRMED' && (
+        <div className="-mx-4 -mb-2 mt-2 overflow-hidden">
+          <VisitManageCard
+            type={v.type}
+            scheduledAt={v.scheduledAt}
+            onReschedule={async (iso, reason) => {
+              await reschedule.mutateAsync({ visitId: v.id, scheduledAt: iso, reason });
+            }}
+            onCancel={async (reason) => {
+              await cancel.mutateAsync({ visitId: v.id, reason });
+            }}
+          />
+        </div>
       )}
     </div>
   );

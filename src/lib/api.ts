@@ -258,6 +258,12 @@ export const api = {
   completeVisit(visitId: string) {
     return request<Visit>(`/visits/${visitId}/complete`, { method: 'POST' });
   },
+  rescheduleVisit(visitId: string, scheduledAt: string, reason?: string) {
+    return request<Visit>(`/visits/${visitId}/reschedule`, jsonBody({ scheduledAt, reason }));
+  },
+  cancelVisit(visitId: string, reason: string) {
+    return request<Visit>(`/visits/${visitId}/cancel`, jsonBody({ reason }));
+  },
   /** Prestador inicia o serviço (EXECUCAO_AGENDADA → IN_PROGRESS). */
   startExecution(quoteId: string) {
     return request<{ status: string }>(

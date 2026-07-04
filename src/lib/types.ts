@@ -178,6 +178,7 @@ export interface ProviderQuote {
   id: string;
   categoryName: string;
   clientName: string;
+  title: string | null;
   description: string;
   zipCode: string | null;
   status: QuoteStatus;
@@ -302,6 +303,7 @@ export interface ConversationSummary {
   quoteId: string;
   status: ConversationStatus;
   quoteStatus: QuoteStatus;
+  quoteTitle?: string;
   requiresVisit: boolean;
   counterpartName: string;
   counterpartId: string;

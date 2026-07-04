@@ -65,9 +65,9 @@ export function QuoteDetailPage() {
       <Card className="p-4">
         <div className="mb-2 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold leading-tight">{quote.categoryName}</h1>
+            <h1 className="text-xl font-bold leading-tight">{quote.title ?? quote.categoryName}</h1>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-text-muted">
-              <IconUser size={12} /> {quote.clientName}
+              <IconUser size={12} /> {quote.clientName} · {quote.categoryName}
             </p>
           </div>
           <StatusChip status={quote.status} />

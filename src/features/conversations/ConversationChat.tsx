@@ -5,8 +5,10 @@ import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
   useAvailableSlots,
+  useCancelVisit,
   useConfirmVisit,
   useCreateProposal,
+  useRescheduleVisit,
   useMessages,
   useMarkServiceDone,
   useMyConversations,
@@ -25,6 +27,7 @@ import { messagesToChat, toServiceStatus } from './chatAdapter';
 import { computeNextStep } from './nextStep';
 import { NextStepBanner } from '../../components/NextStepBanner';
 import { NextActionCard } from '../../components/NextActionCard';
+import { VisitManageCard } from '../../components/VisitManageCard';
 
 interface ConversationChatProps {
   conversationId: string;
@@ -79,6 +82,8 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
 
   const startExec = useStartExecution(conversation?.quoteId ?? '');
   const markDone = useMarkServiceDone(conversation?.quoteId);
+  const reschedule = useRescheduleVisit(conversation?.quoteId);
+  const cancelVisit = useCancelVisit(conversation?.quoteId);
   const paid = conversation?.quoteStatus === 'PAID';
   const canStartExecution = conversation?.quoteStatus === 'EXECUTION_SCHEDULED';
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
@@ -92,6 +97,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         id: conversation.counterpartId,
         name: conversation.counterpartName,
         avatarUrl: conversation.counterpartAvatarUrl,
+        headline: conversation.quoteTitle,
         role: 'client',
         online: presence.online,
         lastSeenAt: presence.lastSeenAt,
@@ -254,6 +260,27 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
     )
   ) : undefined;
 
+  // Gerenciar (reagendar/cancelar) um agendamento confirmado.
+  const manageableVisit = visitsForGate.data?.find(
+    (v) =>
+      v.status === 'CONFIRMED' &&
+      ((v.type === 'IN_LOCO' && !hasCompletedVisit) ||
+        (v.type === 'EXECUTION' && conversation.quoteStatus === 'EXECUTION_SCHEDULED')),
+  );
+  const manageCard =
+    manageableVisit && isActive ? (
+      <VisitManageCard
+        type={manageableVisit.type}
+        scheduledAt={manageableVisit.scheduledAt}
+        onReschedule={async (iso, reason) => {
+          await reschedule.mutateAsync({ visitId: manageableVisit.id, scheduledAt: iso, reason });
+        }}
+        onCancel={async (reason) => {
+          await cancelVisit.mutateAsync({ visitId: manageableVisit.id, reason });
+        }}
+      />
+    ) : null;
+
   return (
     <ChatConversationView
       peer={peer}
@@ -269,8 +296,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       onBack={onBack}
       headerBanner={headerBanner}
       aboveComposer={
-        nextAction || aboveComposer ? (
+        manageCard || nextAction || aboveComposer ? (
           <>
+            {manageCard}
             {nextAction}
             {aboveComposer}
           </>
