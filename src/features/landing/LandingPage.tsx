@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { links } from '@orcalink/design-tokens/links.config';
 import { Button, ButtonLink } from '../../components/ui';
+import { ContactModal } from '../../components/ContactModal';
 import {
   IconAgenda,
   IconArrowRight,
@@ -212,8 +213,10 @@ function FinalCta() {
 }
 
 function Footer() {
+  const [contactOpen, setContactOpen] = useState(false);
   return (
     <footer className="bg-content1/50">
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-text-muted sm:flex-row">
         <span>
           © {new Date().getFullYear()} {brand.legalName}
@@ -222,9 +225,9 @@ function Footer() {
           <a href={links.clientUrl} className="hover:text-foreground">
             Sou cliente
           </a>
-          <a href={`mailto:${brand.supportEmail}`} className="hover:text-foreground">
+          <button type="button" onClick={() => setContactOpen(true)} className="hover:text-foreground">
             Contato
-          </a>
+          </button>
           <a href={links.adminUrl} className="text-text-muted/60 hover:text-text-muted">
             Admin
           </a>

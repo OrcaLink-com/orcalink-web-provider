@@ -108,22 +108,47 @@ export interface ProviderSocial {
   whatsapp?: string;
 }
 
+export interface PortfolioItem {
+  id?: string;
+  url: string;
+  title?: string;
+  description?: string;
+  categoryId?: string;
+  date?: string;
+}
+
 /** Perfil profissional (GET/PUT /provider/me/profile). */
 export interface ProviderProfile {
   companyName: string | null;
+  tradeName: string | null;
   bio: string | null;
+  history: string | null;
+  logoUrl: string | null;
   coverUrl: string | null;
+  foundedYear: number | null;
+  specialties: string[];
+  citiesServed: string[];
+  avgResponseMinutes: number | null;
+  phone: string | null;
   categoryIds: string[];
-  portfolio: string[];
+  portfolio: PortfolioItem[];
   social: ProviderSocial;
 }
 
 export interface UpdateProviderProfileInput {
   companyName?: string;
+  tradeName?: string;
   bio?: string;
+  history?: string;
+  logoUrl?: string;
   coverUrl?: string;
+  foundedYear?: number;
+  specialties?: string[];
+  citiesServed?: string[];
+  avgResponseMinutes?: number;
+  phone?: string;
   categoryIds?: string[];
-  portfolio?: string[];
+  portfolio?: PortfolioItem[];
   social?: ProviderSocial;
 }
 

@@ -1,7 +1,9 @@
-import { LuPencil } from 'react-icons/lu';
+import { useState } from 'react';
+import { LuHeadphones, LuPencil } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { useProfile, useRating } from '../../lib/queries';
 import { Avatar, Button, ButtonLink, Card, ListRow, RatingStars } from '../../components/ui';
+import { ContactModal } from '../../components/ContactModal';
 import { IconAgenda, IconArea, IconInbox, IconWallet, IconLogout } from '../../components/icons';
 
 /** "Eu" do prestador: reputação + Meu negócio (área, agenda) + sair. */
@@ -10,9 +12,11 @@ export function EuPage() {
   const ratingQ = useRating();
   const rating = ratingQ.data;
   const profile = useProfile();
+  const [contactOpen, setContactOpen] = useState(false);
 
   return (
     <div className="space-y-6">
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} authenticated />
       <div className="flex items-center gap-4">
         <Avatar name={user?.name ?? 'Você'} src={profile.data?.avatarUrl} size="lg" />
         <div className="min-w-0 flex-1">
@@ -36,6 +40,12 @@ export function EuPage() {
           <ListRow icon={<IconInbox size={18} />} title="Notificações" to="/inbox" />
           <ListRow icon={<IconArea size={18} />} title="Área de atendimento" to="/area" />
           <ListRow icon={<IconAgenda size={18} />} title="Disponibilidade & bloqueios" to="/agenda" />
+          <ListRow
+            icon={<LuHeadphones size={18} />}
+            title="Falar com a Orca Link"
+            subtitle="Dúvidas, suporte, comercial"
+            onClick={() => setContactOpen(true)}
+          />
         </Card>
       </section>
 

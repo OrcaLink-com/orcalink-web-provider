@@ -174,6 +174,9 @@ export const api = {
   listCategories() {
     return request<Category[]>('/categories', {}, false);
   },
+  sendContact(input: { subject: string; category: string; message: string; name?: string; email?: string }) {
+    return request<{ ok: boolean; id: string }>('/contact', jsonBody(input));
+  },
   uploadImage(file: File) {
     const form = new FormData();
     form.append('file', file);

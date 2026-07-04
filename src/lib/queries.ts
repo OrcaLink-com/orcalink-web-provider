@@ -215,6 +215,13 @@ export function useCategories() {
   return useQuery({ queryKey: ['categories'] as const, queryFn: api.listCategories, staleTime: 5 * 60 * 1000 });
 }
 
+export function useSendContact() {
+  return useMutation({
+    mutationFn: (input: { subject: string; category: string; message: string; name?: string; email?: string }) =>
+      api.sendContact(input),
+  });
+}
+
 export function useProviderProfile() {
   return useQuery({ queryKey: ['provider', 'profile'] as const, queryFn: api.getProviderProfile });
 }

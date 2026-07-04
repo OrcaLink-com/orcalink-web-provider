@@ -11,8 +11,9 @@ import {
   useUpdateProviderProfile,
 } from '../../lib/queries';
 import { api } from '../../lib/api';
+import type { PortfolioItem } from '../../lib/types';
 import { AvatarUploader } from '../../components/AvatarUploader';
-import { Button, Card, Input, Spinner, Textarea } from '../../components/ui';
+import { Button, Card, Input, Select, Spinner, Textarea } from '../../components/ui';
 
 /** Tela "Meu Perfil" do prestador: dados pessoais, endereço, senha e perfil profissional. */
 export function ProfilePage() {
@@ -95,12 +96,24 @@ function BusinessSection() {
   const categoriesQ = useCategories();
   const update = useUpdateProviderProfile();
   const coverRef = useRef<HTMLInputElement>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
 
-  const [companyName, setCompanyName] = useState('');
-  const [bio, setBio] = useState('');
-  const [coverUrl, setCoverUrl] = useState('');
+  const [f, setF] = useState({
+    companyName: '',
+    tradeName: '',
+    bio: '',
+    history: '',
+    logoUrl: '',
+    coverUrl: '',
+    foundedYear: '',
+    specialties: '',
+    citiesServed: '',
+    avgResponseMinutes: '',
+    phone: '',
+  });
+  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
-  const [portfolio, setPortfolio] = useState<string[]>([]);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [social, setSocial] = useState({ instagram: '', facebook: '', website: '', whatsapp: '' });
   const [ok, setOk] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -111,9 +124,19 @@ function BusinessSection() {
   useEffect(() => {
     const d = profileQ.data;
     if (!d) return;
-    setCompanyName(d.companyName ?? '');
-    setBio(d.bio ?? '');
-    setCoverUrl(d.coverUrl ?? '');
+    setF({
+      companyName: d.companyName ?? '',
+      tradeName: d.tradeName ?? '',
+      bio: d.bio ?? '',
+      history: d.history ?? '',
+      logoUrl: d.logoUrl ?? '',
+      coverUrl: d.coverUrl ?? '',
+      foundedYear: d.foundedYear ? String(d.foundedYear) : '',
+      specialties: d.specialties.join(', '),
+      citiesServed: d.citiesServed.join(', '),
+      avgResponseMinutes: d.avgResponseMinutes != null ? String(d.avgResponseMinutes) : '',
+      phone: d.phone ?? '',
+    });
     setCategoryIds(d.categoryIds);
     setPortfolio(d.portfolio);
     setSocial({
@@ -128,15 +151,12 @@ function BusinessSection() {
     setCategoryIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   }
 
-  async function uploadCover(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
+  async function uploadTo(file: File, apply: (url: string) => void) {
     setUploading(true);
     setError(null);
     try {
       const res = await api.uploadImage(file);
-      setCoverUrl(res.url);
+      apply(res.url);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -144,29 +164,45 @@ function BusinessSection() {
     }
   }
 
-  async function addPortfolio(e: React.ChangeEvent<HTMLInputElement>) {
+  function onCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
-    setUploading(true);
-    setError(null);
-    try {
-      const res = await api.uploadImage(file);
-      setPortfolio((prev) => [...prev, res.url]);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setUploading(false);
-    }
+    if (file) void uploadTo(file, (url) => setF((s) => ({ ...s, coverUrl: url })));
   }
+  function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void uploadTo(file, (url) => setF((s) => ({ ...s, logoUrl: url })));
+  }
+  function onAddPortfolio(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file)
+      void uploadTo(file, (url) =>
+        setPortfolio((prev) => [...prev, { id: `${Date.now()}`, url, title: '', description: '' }]),
+      );
+  }
+  function updateItem(idx: number, patch: Partial<PortfolioItem>) {
+    setPortfolio((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  }
+
+  const toList = (v: string) => v.split(',').map((s) => s.trim()).filter(Boolean);
 
   async function save() {
     setError(null);
     try {
       await update.mutateAsync({
-        companyName: companyName.trim() || undefined,
-        bio: bio.trim() || undefined,
-        coverUrl: coverUrl || undefined,
+        companyName: f.companyName.trim() || undefined,
+        tradeName: f.tradeName.trim() || undefined,
+        bio: f.bio.trim() || undefined,
+        history: f.history.trim() || undefined,
+        logoUrl: f.logoUrl || undefined,
+        coverUrl: f.coverUrl || undefined,
+        foundedYear: f.foundedYear ? Number(f.foundedYear) : undefined,
+        specialties: toList(f.specialties),
+        citiesServed: toList(f.citiesServed),
+        avgResponseMinutes: f.avgResponseMinutes ? Number(f.avgResponseMinutes) : undefined,
+        phone: f.phone.trim() || undefined,
         categoryIds,
         portfolio,
         social: {
@@ -184,31 +220,58 @@ function BusinessSection() {
 
   if (profileQ.isLoading) return <Card className="p-5"><Spinner label="Carregando perfil profissional…" /></Card>;
 
-  return (
-    <Card className="space-y-4 p-5">
-      <SectionTitle icon={<LuBriefcase size={16} />} title="Perfil profissional" />
+  const catOptions = [{ value: '', label: 'Sem categoria' }, ...(categoriesQ.data ?? []).map((c) => ({ value: c.id, label: c.name }))];
 
-      {/* Capa */}
+  return (
+    <Card className="space-y-5 p-5">
+      <SectionTitle icon={<LuBriefcase size={16} />} title="Perfil da empresa" />
+
+      {/* Capa + logo */}
       <div>
-        <p className="mb-1 text-sm text-text-muted">Foto de capa</p>
+        <p className="mb-1 text-sm text-text-muted">Foto de capa (banner)</p>
         <button
           type="button"
           onClick={() => coverRef.current?.click()}
           className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-content2/40 text-text-muted hover:bg-content2"
         >
-          {coverUrl ? (
-            <img src={coverUrl} alt="" className="h-full w-full object-cover" />
+          {f.coverUrl ? (
+            <img src={f.coverUrl} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="flex items-center gap-2 text-sm"><LuImagePlus size={18} /> Adicionar capa</span>
           )}
         </button>
-        <input ref={coverRef} type="file" accept="image/*" onChange={uploadCover} className="hidden" />
+        <input ref={coverRef} type="file" accept="image/*" onChange={onCover} className="hidden" />
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => logoRef.current?.click()}
+          className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-content2/40 text-text-muted hover:bg-content2"
+        >
+          {f.logoUrl ? <img src={f.logoUrl} alt="" className="h-full w-full object-cover" /> : <LuImagePlus size={18} />}
+        </button>
+        <div className="text-sm text-text-muted">
+          <p className="font-medium text-foreground">Logo da empresa</p>
+          <p>Aparece no seu perfil público.</p>
+        </div>
+        <input ref={logoRef} type="file" accept="image/*" onChange={onLogo} className="hidden" />
       </div>
 
-      <Input label="Nome do negócio" value={companyName} onChange={setCompanyName} placeholder="Ex.: Pinturas Silva" />
-      <Textarea label="Descrição profissional" value={bio} onChange={setBio} minRows={3} placeholder="Conte sua experiência, especialidades…" />
+      {/* Dados básicos */}
+      <div className="grid grid-cols-2 gap-3">
+        <Input label="Nome da empresa" value={f.companyName} onChange={set('companyName')} placeholder="Pinturas Silva ME" />
+        <Input label="Nome fantasia" value={f.tradeName} onChange={set('tradeName')} placeholder="Silva Pinturas" />
+      </div>
+      <Textarea label="Descrição da empresa" value={f.bio} onChange={set('bio')} minRows={3} placeholder="O que sua empresa faz, diferenciais…" />
+      <Textarea label="História da empresa" value={f.history} onChange={set('history')} minRows={3} placeholder="Como tudo começou…" />
+      <div className="grid grid-cols-2 gap-3">
+        <Input label="Atua desde (ano)" value={f.foundedYear} onChange={set('foundedYear')} placeholder="2014" />
+        <Input label="Tempo médio de resposta (min)" value={f.avgResponseMinutes} onChange={set('avgResponseMinutes')} placeholder="60" />
+      </div>
+      <Input label="Especialidades (separe por vírgula)" value={f.specialties} onChange={set('specialties')} placeholder="Pintura, Textura, Gesso" />
 
-      {/* Categorias */}
+      {/* Atendimento */}
+      <Input label="Cidades atendidas (separe por vírgula)" value={f.citiesServed} onChange={set('citiesServed')} placeholder="São Paulo, Guarulhos" />
       <div>
         <p className="mb-2 text-sm text-text-muted">Categorias atendidas</p>
         <div className="flex flex-wrap gap-2">
@@ -231,42 +294,51 @@ function BusinessSection() {
         </div>
       </div>
 
-      {/* Portfólio */}
-      <div>
-        <p className="mb-2 text-sm text-text-muted">Portfólio</p>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {portfolio.map((url) => (
-            <div key={url} className="group relative aspect-square overflow-hidden rounded-xl border border-border">
-              <img src={url} alt="" className="h-full w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => setPortfolio((prev) => prev.filter((u) => u !== url))}
-                className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                aria-label="Remover imagem"
-              >
-                <LuTrash2 size={14} />
-              </button>
-            </div>
-          ))}
-          <label className="flex aspect-square cursor-pointer items-center justify-center rounded-xl border border-dashed border-border text-text-muted hover:bg-content2">
-            <LuImagePlus size={20} />
-            <input type="file" accept="image/*" onChange={addPortfolio} className="hidden" />
-          </label>
-        </div>
-      </div>
-
-      {/* Redes sociais */}
+      {/* Contato */}
       <div className="space-y-3">
-        <p className="text-sm text-text-muted">Redes sociais (opcional)</p>
-        <Input label="Instagram" value={social.instagram} onChange={(v) => setSocial((s) => ({ ...s, instagram: v }))} placeholder="@usuario" />
+        <p className="text-sm text-text-muted">Contato</p>
+        <Input label="Telefone" value={f.phone} onChange={set('phone')} placeholder="(11) 99999-8888" />
         <Input label="WhatsApp" value={social.whatsapp} onChange={(v) => setSocial((s) => ({ ...s, whatsapp: v }))} placeholder="(11) 99999-8888" />
+        <Input label="Instagram" value={social.instagram} onChange={(v) => setSocial((s) => ({ ...s, instagram: v }))} placeholder="@usuario" />
         <Input label="Facebook" value={social.facebook} onChange={(v) => setSocial((s) => ({ ...s, facebook: v }))} />
         <Input label="Site" value={social.website} onChange={(v) => setSocial((s) => ({ ...s, website: v }))} placeholder="https://…" />
       </div>
 
+      {/* Portfólio (imagens grandes, cada trabalho com título/descrição/categoria/data) */}
+      <div className="space-y-3">
+        <p className="text-sm text-text-muted">Portfólio de trabalhos</p>
+        {portfolio.map((it, idx) => (
+          <div key={it.id ?? it.url} className="overflow-hidden rounded-2xl border border-border">
+            <div className="relative aspect-video w-full bg-content2">
+              <img src={it.url} alt={it.title ?? ''} className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setPortfolio((prev) => prev.filter((_, i) => i !== idx))}
+                className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white"
+                aria-label="Remover trabalho"
+              >
+                <LuTrash2 size={15} />
+              </button>
+            </div>
+            <div className="space-y-2 p-3">
+              <Input label="Título" value={it.title ?? ''} onChange={(v) => updateItem(idx, { title: v })} placeholder="Ex.: Pintura de fachada" />
+              <Textarea label="Descrição" value={it.description ?? ''} onChange={(v) => updateItem(idx, { description: v })} minRows={2} />
+              <div className="grid grid-cols-2 gap-2">
+                <Select label="Categoria" options={catOptions} value={it.categoryId ?? ''} onChange={(v) => updateItem(idx, { categoryId: v })} />
+                <Input label="Data (opcional)" value={it.date ?? ''} onChange={(v) => updateItem(idx, { date: v })} placeholder="2025-03" />
+              </div>
+            </div>
+          </div>
+        ))}
+        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-6 text-sm text-text-muted hover:bg-content2">
+          <LuImagePlus size={18} /> Adicionar trabalho
+          <input type="file" accept="image/*" onChange={onAddPortfolio} className="hidden" />
+        </label>
+      </div>
+
       {uploading && <p className="text-xs text-text-muted">Enviando imagem…</p>}
       {error && <p className="text-sm text-danger">{error}</p>}
-      <SaveRow onSave={() => void save()} loading={update.isPending} ok={ok} label="Salvar perfil profissional" />
+      <SaveRow onSave={() => void save()} loading={update.isPending} ok={ok} label="Salvar perfil da empresa" />
     </Card>
   );
 }
