@@ -14,7 +14,7 @@ const NegociosPage = lazy(() => import('./features/negocios/NegociosPage').then(
 const QuoteDetailPage = lazy(() => import('./features/quotes/QuoteDetailPage').then((m) => ({ default: m.QuoteDetailPage })));
 const ConversationPage = lazy(() => import('./features/conversations/ConversationPage').then((m) => ({ default: m.ConversationPage })));
 const ServiceAreaPage = lazy(() => import('./features/area/ServiceAreaPage').then((m) => ({ default: m.ServiceAreaPage })));
-const SchedulePage = lazy(() => import('./features/agenda/SchedulePage').then((m) => ({ default: m.SchedulePage })));
+const AgendaPage = lazy(() => import('./features/agenda/AgendaPage').then((m) => ({ default: m.AgendaPage })));
 const EuPage = lazy(() => import('./features/profile/EuPage').then((m) => ({ default: m.EuPage })));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const InboxPage = lazy(() => import('./features/inbox/InboxPage').then((m) => ({ default: m.InboxPage })));
@@ -64,7 +64,7 @@ function Authenticated() {
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="negocios" element={<NegociosPage />} />
-          <Route path="agenda" element={<SchedulePage />} />
+          <Route path="agenda" element={<AgendaPage />} />
           <Route path="area" element={<ServiceAreaPage />} />
           <Route path="eu" element={<EuPage />} />
           <Route path="perfil" element={<ProfilePage />} />

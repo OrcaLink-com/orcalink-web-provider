@@ -352,4 +352,7 @@ export interface ProviderVisit extends Visit {
   quoteDescription: string;
   quoteCategoryName: string;
   clientName: string;
+  zipCode: string | null;
+  quoteStatus: QuoteStatus;
+  conversationId: string | null;
 }
