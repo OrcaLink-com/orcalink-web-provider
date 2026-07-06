@@ -177,6 +177,12 @@ export const api = {
   sendContact(input: { subject: string; category: string; message: string; name?: string; email?: string }) {
     return request<{ ok: boolean; id: string }>('/contact', jsonBody(input));
   },
+  registerPushToken(token: string) {
+    return request<void>('/notifications/push/register', jsonBody({ token, platform: 'web' }));
+  },
+  unregisterPushToken(token: string) {
+    return request<void>('/notifications/push/register', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+  },
   uploadImage(file: File) {
     const form = new FormData();
     form.append('file', file);

@@ -22,15 +22,18 @@ export function QuoteDetailPage() {
   const [openConv, setOpenConv] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 
-  // Abertura do chat pela notificação (toast) → abre o Drawer da conversa.
+  // Abertura do chat pela notificação (toast → state; push/deep-link → ?chat=).
   const location = useLocation();
-  const openChat = (location.state as { openChat?: string } | null)?.openChat;
+  const openChat =
+    (location.state as { openChat?: string } | null)?.openChat ??
+    new URLSearchParams(location.search).get('chat') ??
+    undefined;
   useEffect(() => {
     if (openChat) {
       setOpenConv(openChat);
-      window.history.replaceState({}, '');
+      window.history.replaceState({}, '', location.pathname);
     }
-  }, [openChat]);
+  }, [openChat, location.pathname]);
 
   async function startAndOpen() {
     if (quote?.myConversationId) {
