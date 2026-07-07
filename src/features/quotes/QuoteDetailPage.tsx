@@ -60,7 +60,7 @@ export function QuoteDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/negocios" className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-foreground">
+      <Link to="/app/negocios" className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-foreground">
         <IconBack size={15} /> Negócios
       </Link>
 

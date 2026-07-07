@@ -57,7 +57,7 @@ export function AgendaPage() {
   }
   function openQuote(quoteId: string) {
     setSelected(null);
-    navigate(`/orcamento/${quoteId}`);
+    navigate(`/app/orcamento/${quoteId}`);
   }
 
   return (

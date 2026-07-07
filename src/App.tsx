@@ -19,6 +19,7 @@ const EuPage = lazy(() => import('./features/profile/EuPage').then((m) => ({ def
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const InboxPage = lazy(() => import('./features/inbox/InboxPage').then((m) => ({ default: m.InboxPage })));
 const FinancePage = lazy(() => import('./features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
+const NotFoundPage = lazy(() => import('./features/misc/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
 function Loading() {
   return <Spinner label="Carregando…" />;
@@ -26,18 +27,25 @@ function Loading() {
 
 export function App() {
   const { isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
-    return (
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    );
-  }
-  return <Authenticated />;
+  return (
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        {/* Público: a landing é sempre a home em "/" (mesmo logado). */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <LoginPage />} />
+        {/* Compat: quem tinha "/site" salvo cai na landing. */}
+        <Route path="/site" element={<Navigate to="/" replace />} />
+
+        {/* Área autenticada sob "/app". */}
+        <Route
+          path="/app/*"
+          element={isAuthenticated ? <Authenticated /> : <Navigate to="/login" replace />}
+        />
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
+  );
 }
 
 function Authenticated() {
@@ -73,9 +81,9 @@ function Authenticated() {
           <Route path="orcamento/:quoteId" element={<QuoteDetailPage />} />
           <Route path="conversa/:conversationId" element={<ConversationPage />} />
           {/* Compat com links antigos */}
-          <Route path="oportunidades" element={<Navigate to="/negocios" replace />} />
-          <Route path="conversas" element={<Navigate to="/negocios" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="oportunidades" element={<Navigate to="/app/negocios" replace />} />
+          <Route path="conversas" element={<Navigate to="/app/negocios" replace />} />
+          <Route path="*" element={<NotFoundPage homeTo="/app" />} />
         </Route>
       </Routes>
     </Suspense>

@@ -11,7 +11,7 @@ export function ConversationPage() {
 
   return (
     <div className="h-[calc(100dvh-9rem)] overflow-hidden rounded-2xl border border-border">
-      <ConversationChat conversationId={conversationId} onBack={() => navigate('/negocios')} />
+      <ConversationChat conversationId={conversationId} onBack={() => navigate('/app/negocios')} />
     </div>
   );
 }

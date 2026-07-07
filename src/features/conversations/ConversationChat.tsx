@@ -384,7 +384,7 @@ function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'exec
         {slotsQ.data?.reason === 'OFF_DAY' && (
           <p className="rounded-md bg-card px-2 py-1 text-xs text-warning">
             Você não atende nesse dia — escolha outra data ou ajuste sua{' '}
-            <a href="/agenda" className="underline">disponibilidade</a>.
+            <a href="/app/agenda" className="underline">disponibilidade</a>.
           </p>
         )}
         {slotsQ.data?.reason === 'DAY_LIMIT_REACHED' && (

@@ -80,7 +80,7 @@ export function ServiceAreaPage() {
 
   return (
     <div className="space-y-3">
-      <Link to="/" className="text-sm text-text-muted underline">
+      <Link to="/app" className="text-sm text-text-muted underline">
         ← Início
       </Link>
       <h1 className="text-xl font-semibold">Área de atendimento</h1>

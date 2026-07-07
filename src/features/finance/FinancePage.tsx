@@ -126,7 +126,7 @@ function EntryRow({ entry: e, kind }: { entry: ProviderFinanceEntry; kind: 'escr
   const when = kind === 'payout' ? e.releasedAt : e.paidAt;
   return (
     <li>
-      <Card to={`/orcamento/${e.quoteId}`} className="p-3.5">
+      <Card to={`/app/orcamento/${e.quoteId}`} className="p-3.5">
         <div className="flex items-center gap-3">
           <span
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${

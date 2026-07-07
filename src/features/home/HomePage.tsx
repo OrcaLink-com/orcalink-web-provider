@@ -127,7 +127,7 @@ export function HomePage() {
 
       {/* Agenda */}
       <section>
-        <SectionHeader title="Agenda" action={<Link to="/agenda" className="text-xs font-medium text-primary">Ver agenda</Link>} />
+        <SectionHeader title="Agenda" action={<Link to="/app/agenda" className="text-xs font-medium text-primary">Ver agenda</Link>} />
         {agenda.length === 0 ? (
           <EmptyState icon={<IconAgenda size={24} />} title="Nada agendado nos próximos dias" />
         ) : (

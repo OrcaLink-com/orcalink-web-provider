@@ -17,7 +17,7 @@ export function Sidebar() {
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-background px-3 py-5 lg:flex">
       <div className="flex items-center justify-between px-2">
-        <Link to="/" className="flex items-center gap-1.5" aria-label={`${brand.name} Pro`}>
+        <Link to="/app" className="flex items-center gap-1.5" aria-label={`${brand.name} Pro`}>
           <img src="/brand/logo.svg" alt={brand.name} className="h-10 w-auto" />
           <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">Pro</span>
         </Link>
@@ -25,12 +25,12 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-6 space-y-1">
-        <Item to="/" icon={<IconHome size={20} />} label="Home" end />
-        <Item to="/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
-        <Item to="/inbox" icon={<IconInbox size={20} />} label="Notificações" badge={unread} />
-        <Item to="/financeiro" icon={<IconWallet size={20} />} label="Financeiro" />
-        <Item to="/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
-        <Item to="/eu" icon={<IconUser size={20} />} label="Eu" />
+        <Item to="/app" icon={<IconHome size={20} />} label="Home" end />
+        <Item to="/app/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
+        <Item to="/app/inbox" icon={<IconInbox size={20} />} label="Notificações" badge={unread} />
+        <Item to="/app/financeiro" icon={<IconWallet size={20} />} label="Financeiro" />
+        <Item to="/app/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
+        <Item to="/app/eu" icon={<IconUser size={20} />} label="Eu" />
       </nav>
 
       <div className="mt-auto border-t border-border pt-3">

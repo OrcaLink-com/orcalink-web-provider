@@ -136,7 +136,7 @@ function OpportunitiesTab() {
         title="Escolha suas categorias"
         hint="Só mostramos oportunidades das categorias que você atende. Configure as categorias no seu perfil para começar a receber trabalhos relevantes."
         action={
-          <Button size="sm" onClick={() => navigate('/perfil')}>
+          <Button size="sm" onClick={() => navigate('/app/perfil')}>
             Configurar perfil
           </Button>
         }
@@ -208,7 +208,7 @@ function OpportunitiesTab() {
         <ul className="space-y-3">
           {filtered.map((q) => (
             <li key={q.id}>
-              <OpportunityCard quote={q} onView={() => navigate(`/orcamento/${q.id}`)} />
+              <OpportunityCard quote={q} onView={() => navigate(`/app/orcamento/${q.id}`)} />
             </li>
           ))}
         </ul>
@@ -317,7 +317,7 @@ function WorksList({
             <WorkCard
               conv={c}
               variant={variant}
-              onView={() => navigate(`/orcamento/${c.quoteId}`)}
+              onView={() => navigate(`/app/orcamento/${c.quoteId}`)}
               onOpenChat={() => setOpenConv(c.id)}
             />
           </li>

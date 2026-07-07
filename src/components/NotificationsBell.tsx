@@ -98,7 +98,7 @@ export function NotificationsBell() {
             type="button"
             onClick={() => {
               setOpen(false);
-              navigate('/inbox');
+              navigate('/app/inbox');
             }}
             className="flex items-center justify-center gap-0.5 border-t border-border py-2.5 text-xs font-medium text-primary hover:bg-content2"
           >

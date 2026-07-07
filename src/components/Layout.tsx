@@ -22,13 +22,13 @@ export function Layout() {
       <div className="flex min-w-0 flex-1 flex-col">
         {!focusedFlow && (
           <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/85 px-4 py-3 backdrop-blur-lg lg:hidden">
-            <Link to="/" className="flex items-baseline gap-1.5 text-lg font-bold text-primary">
+            <Link to="/app" className="flex items-baseline gap-1.5 text-lg font-bold text-primary">
               {brand.name}
               <span className="text-xs font-normal text-text-muted">Pro</span>
             </Link>
             <div className="flex items-center gap-1.5">
               <NotificationsBell />
-              <Link to="/eu" aria-label="Sua conta">
+              <Link to="/app/eu" aria-label="Sua conta">
                 <Avatar name={user?.name ?? '?'} src={profile.data?.avatarUrl} size="sm" />
               </Link>
             </div>
