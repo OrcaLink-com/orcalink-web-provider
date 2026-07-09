@@ -11,6 +11,7 @@ import type {
   ProviderDashboard,
   ProviderFinance,
   ProviderProfile,
+  PublicProviderProfile,
   ProviderQuote,
   ProviderQuoteDetail,
   ProviderVisit,
@@ -190,6 +191,9 @@ export const api = {
   },
   getProviderProfile() {
     return request<ProviderProfile>('/provider/me/profile');
+  },
+  getProviderPublicProfile(providerId: string) {
+    return request<PublicProviderProfile>(`/providers/${providerId}/profile`);
   },
   updateProviderProfile(input: UpdateProviderProfileInput) {
     return request<ProviderProfile>('/provider/me/profile', {

@@ -13,6 +13,26 @@ export type QuoteStatus =
   | 'CANCELED';
 export type ProposalStatus = 'PENDING' | 'ACCEPTED' | 'APPROVED' | 'REJECTED' | 'FINISHED';
 
+export type ProposalItemGroup = 'LABOR' | 'MATERIAL' | 'EQUIPMENT' | 'TRAVEL' | 'OTHER';
+
+export interface ProposalItem {
+  group: ProposalItemGroup;
+  description: string;
+  quantity: number;
+  unit?: string | null;
+  unitCents: number;
+  subtotalCents: number;
+}
+
+export interface ProposalTechnical {
+  areaText?: string | null;
+  quantityText?: string | null;
+  validityDays?: number | null;
+  executionConditions?: string | null;
+  technicalNotes?: string | null;
+  warrantiesText?: string | null;
+}
+
 export interface CreateProposalInput {
   type: 'PRE' | 'FINAL';
   amountCents: number;
@@ -24,6 +44,9 @@ export interface CreateProposalInput {
   warrantyDays?: number;
   paymentMethods?: string[];
   requestsVisit?: boolean;
+  format?: 'SIMPLE' | 'PRO';
+  items?: ProposalItem[];
+  technical?: ProposalTechnical;
 }
 export type ProposalType = 'PRE' | 'FINAL';
 export type ConversationStatus = 'ACTIVE' | 'BLOCKED' | 'CLOSED';
@@ -133,6 +156,19 @@ export interface ProviderProfile {
   categoryIds: string[];
   portfolio: PortfolioItem[];
   social: ProviderSocial;
+}
+
+/** Perfil PÚBLICO de um prestador (GET /providers/:id/profile) — usado no documento de orçamento. */
+export interface PublicProviderProfile {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  companyName: string | null;
+  tradeName: string | null;
+  logoUrl: string | null;
+  categories: { id: string; name: string }[];
+  ratingAvg: number;
+  ratingCount: number;
 }
 
 export interface UpdateProviderProfileInput {
@@ -285,6 +321,9 @@ export interface Proposal {
   warrantyDays?: number | null;
   paymentMethods?: string[];
   requestsVisit?: boolean;
+  format?: 'SIMPLE' | 'PRO';
+  items?: ProposalItem[];
+  technical?: ProposalTechnical | null;
   status: ProposalStatus;
   createdAt: string;
 }
