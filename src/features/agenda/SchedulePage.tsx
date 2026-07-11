@@ -18,6 +18,11 @@ function BlocksSection() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // Limpa o erro assim que o usuário ajusta as datas do bloqueio.
+  useEffect(() => {
+    setError(null);
+  }, [startsAt, endsAt]);
+
   function fmt(iso: string): string {
     const d = new Date(iso);
     const tz = 'America/Sao_Paulo';
@@ -144,6 +149,11 @@ export function SchedulePage() {
   const [limit, setLimit] = useState(4);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Limpa o erro de validação assim que o usuário ajusta o expediente.
+  useEffect(() => {
+    setError(null);
+  }, [days, start, end, limit]);
 
   useEffect(() => {
     if (!q.data) return;

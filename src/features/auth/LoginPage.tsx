@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { useAuth } from '../../auth/AuthContext';
@@ -90,6 +90,11 @@ function OtpForm() {
   const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Limpa o erro assim que o usuário edita os campos.
+  useEffect(() => {
+    setError(null);
+  }, [channel, destination, code]);
 
   async function onRequest(e: React.FormEvent) {
     e.preventDefault();

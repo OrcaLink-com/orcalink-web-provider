@@ -347,6 +347,11 @@ function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'exec
   const [selectedSlotISO, setSelectedSlotISO] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
+  // Limpa o erro assim que o usuário escolhe outra data/horário.
+  useEffect(() => {
+    setError(null);
+  }, [date, selectedSlotISO]);
+
   const slotsQ = useAvailableSlots(date);
 
   // Só mostra os agendamentos do MESMO tipo desta fase (não mistura visita técnica na execução).
@@ -534,6 +539,11 @@ function ProposalForm({
   const [techNotes, setTechNotes] = useState(t?.technicalNotes ?? '');
   const [warrantiesText, setWarrantiesText] = useState(t?.warrantiesText ?? '');
   const [error, setError] = useState<string | null>(null);
+
+  // Limpa o erro assim que o usuário edita o formulário (valor, itens, descrição, modo).
+  useEffect(() => {
+    setError(null);
+  }, [amount, amountMin, amountMax, desc, items, mode, proposalType]);
 
   const isPre = proposalType === 'PRE';
   const proTotal = items.reduce((s, r) => s + rowSubtotal(r), 0);
