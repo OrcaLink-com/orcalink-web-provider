@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import {
@@ -10,27 +10,31 @@ import { formatBRL } from '../../lib/format';
 import {
   AreaTrend,
   BarTrend,
+  ButtonLink,
   Card,
   EmptyState,
   RatingStars,
   SectionHeader,
   Spinner,
   StatCard,
+  StatusChip,
 } from '../../components/ui';
 import {
   IconAgenda,
+  IconChat,
   IconChevronRight,
   IconClock,
   IconCompare,
   IconEdit,
   IconExecution,
   IconLocation,
+  IconPayment,
   IconReschedule,
   IconScheduled,
   IconSuccess,
   IconWaiting,
 } from '../../components/icons';
-import type { ConversationSummary, ProviderVisit } from '../../lib/types';
+import type { ConversationSummary, ProviderDashboard, ProviderVisit } from '../../lib/types';
 
 export function HomePage() {
   const { user } = useAuth();
@@ -42,13 +46,17 @@ export function HomePage() {
   const conversations = convQ.data ?? [];
   const visits = visitsQ.data ?? [];
 
-  const alerts = buildAlerts(conversations, visits);
-  const agenda = buildAgenda(visits);
+  const alerts = useMemo(() => buildAlerts(conversations, visits, d), [conversations, visits, d]);
+  const agenda = useMemo(() => buildAgenda(visits), [visits]);
+  const [filter, setFilter] = useState<'all' | AlertCategory>('all');
 
   if (dashQ.isLoading) return <Spinner label="Carregando seu painel…" />;
 
   const revenueData = (d?.revenueSeries ?? []).map((p) => ({ label: shortDay(p.label), value: p.value }));
   const servicesData = (d?.monthlyServices ?? []).map((p) => ({ label: shortMonth(p.label), value: p.value }));
+
+  const shownAlerts = filter === 'all' ? alerts : alerts.filter((a) => a.category === filter);
+  const countBy = (cat: AlertCategory) => alerts.filter((a) => a.category === cat).length;
 
   return (
     <div className="space-y-7">
@@ -85,6 +93,93 @@ export function HomePage() {
         </>
       )}
 
+      {/* Avisos — painel de trabalho */}
+      <section>
+        <SectionHeader title="Avisos" />
+        <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
+          {(
+            [
+              ['all', 'Todas', alerts.length],
+              ['action', 'Ações pendentes', countBy('action')],
+              ['agenda', 'Agenda', countBy('agenda')],
+              ['finance', 'Financeiro', countBy('finance')],
+              ['messages', 'Mensagens', countBy('messages')],
+              ['system', 'Sistema', countBy('system')],
+            ] as [typeof filter, string, number][]
+          ).map(([key, label, count]) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === key
+                  ? 'border-primary bg-primary/15 text-primary'
+                  : 'border-border text-text-muted hover:bg-card-2'
+              }`}
+            >
+              {label}
+              {count > 0 && <span className="ml-1 opacity-70">{count}</span>}
+            </button>
+          ))}
+        </div>
+
+        {shownAlerts.length === 0 ? (
+          <EmptyState icon={<IconSuccess size={24} />} title={filter === 'all' ? 'Tudo em dia' : 'Nada nesta categoria'} />
+        ) : (
+          <ul className="divide-y divide-border overflow-hidden rounded-large border border-border bg-content1 shadow-card">
+            {shownAlerts.map((a) => (
+              <li key={a.key}>
+                <Link to={a.to} className="flex items-center gap-3 px-3.5 py-3 transition-colors hover:bg-card-2">
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${toneChip[a.tone]}`}>
+                    {a.icon}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{a.title}</p>
+                    {a.subtitle && <p className="truncate text-xs text-text-muted">{a.subtitle}</p>}
+                  </div>
+                  {a.meta && <span className="shrink-0 text-xs text-text-muted">{a.meta}</span>}
+                  <IconChevronRight size={18} className="shrink-0 text-text-muted" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Mini-agenda — próximos 5 dias */}
+      <section>
+        <SectionHeader title="Próximos compromissos" />
+        {agenda.length === 0 ? (
+          <EmptyState icon={<IconAgenda size={24} />} title="Nada agendado nos próximos 5 dias" />
+        ) : (
+          <ul className="space-y-2.5">
+            {agenda.map((v) => {
+              const chip = visitStatusChip(v.status);
+              return (
+                <li key={v.id}>
+                  <Card to={visitLink(v)} className="flex items-center gap-3 p-3.5">
+                    <span className="shrink-0 rounded-medium bg-primary/15 px-2.5 py-1.5 text-center text-xs font-bold text-primary">
+                      {dayLabel(v.scheduledAt)}
+                      <br />
+                      {timeOf(v.scheduledAt)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{v.clientName}</p>
+                      <p className="truncate text-xs text-text-muted">
+                        {v.type === 'EXECUTION' ? 'Execução' : 'Visita técnica'} · {v.quoteCategoryName}
+                      </p>
+                    </div>
+                    <StatusChip label={chip.label} varName={chip.varName} size="sm" />
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <ButtonLink to="/app/agenda" variant="secondary" full className="mt-3">
+          Ver agenda completa
+        </ButtonLink>
+      </section>
+
       {/* Gráficos */}
       {d && (
         <section className="space-y-3">
@@ -98,133 +193,121 @@ export function HomePage() {
           </Card>
         </section>
       )}
-
-      {/* Avisos inteligentes */}
-      <section>
-        <SectionHeader title="Avisos" />
-        {alerts.length === 0 ? (
-          <EmptyState icon={<IconSuccess size={24} />} title="Tudo em dia" />
-        ) : (
-          <ul className="grid gap-2.5 sm:grid-cols-2">
-            {alerts.map((a) => (
-              <li key={a.key}>
-                <Link
-                  to={a.to}
-                  className={`flex items-center gap-3 rounded-large border border-l-4 bg-content1 p-3.5 shadow-card ${toneBorder[a.tone]}`}
-                >
-                  <span className={toneText[a.tone]}>{a.icon}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{a.title}</p>
-                    {a.subtitle && <p className="truncate text-xs text-text-muted">{a.subtitle}</p>}
-                  </div>
-                  <IconChevronRight size={18} className="shrink-0 text-text-muted" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {/* Agenda */}
-      <section>
-        <SectionHeader title="Agenda" action={<Link to="/app/agenda" className="text-xs font-medium text-primary">Ver agenda</Link>} />
-        {agenda.length === 0 ? (
-          <EmptyState icon={<IconAgenda size={24} />} title="Nada agendado nos próximos dias" />
-        ) : (
-          <ul className="grid gap-2.5 sm:grid-cols-2">
-            {agenda.map((v) => (
-              <li key={v.id}>
-                <Card className="flex items-center gap-3 p-3.5">
-                  <span className="shrink-0 rounded-medium bg-status-scheduled/20 px-2.5 py-1.5 text-center text-xs font-bold text-status-scheduled">
-                    {dayLabel(v.scheduledAt)}
-                    <br />
-                    {timeOf(v.scheduledAt)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{v.clientName}</p>
-                    <p className="truncate text-xs text-text-muted">
-                      {v.type === 'EXECUTION' ? 'Execução' : 'Visita técnica'} · {v.quoteCategoryName}
-                    </p>
-                  </div>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }
 
 // ───────── avisos ─────────
-type Tone = 'attention' | 'info' | 'danger' | 'success';
+type Tone = 'attention' | 'info' | 'danger' | 'success' | 'finance' | 'message';
+type AlertCategory = 'action' | 'agenda' | 'finance' | 'messages' | 'system';
 interface Alert {
   key: string;
   icon: ReactNode;
   title: string;
   subtitle?: string;
+  meta?: string;
   to: string;
   tone: Tone;
+  category: AlertCategory;
 }
-const toneBorder: Record<Tone, string> = {
-  attention: 'border-border border-l-warning',
-  info: 'border-border border-l-primary',
-  danger: 'border-border border-l-danger',
-  success: 'border-border border-l-success',
-};
-const toneText: Record<Tone, string> = {
-  attention: 'text-warning',
-  info: 'text-primary',
-  danger: 'text-danger',
-  success: 'text-success',
+const toneChip: Record<Tone, string> = {
+  attention: 'bg-warning/15 text-warning',
+  info: 'bg-primary/15 text-primary',
+  danger: 'bg-danger/15 text-danger',
+  success: 'bg-emerald-500/15 text-emerald-300',
+  finance: 'bg-emerald-500/15 text-emerald-300',
+  message: 'bg-sky-500/15 text-sky-300',
 };
 
-function buildAlerts(conversations: ConversationSummary[], visits: ProviderVisit[]): Alert[] {
+function convLink(conversationId: string): string {
+  return `/app/conversa/${conversationId}`;
+}
+function visitLink(v: ProviderVisit): string {
+  return v.conversationId ? `/app/conversa/${v.conversationId}` : `/app/orcamento/${v.quoteId}`;
+}
+
+function buildAlerts(
+  conversations: ConversationSummary[],
+  visits: ProviderVisit[],
+  dash?: ProviderDashboard,
+): Alert[] {
   const sz = 18;
   const out: Alert[] = [];
 
   for (const c of conversations) {
-    const to = `/conversa/${c.id}`;
+    const to = convLink(c.id);
     const who = c.counterpartName;
     const p = c.latestProposal;
+
+    // Mensagens não lidas.
+    if (c.unreadCount > 0) {
+      out.push({ key: `msg-${c.id}`, icon: <IconChat size={sz} />, title: `Nova mensagem de ${who}`, subtitle: `${c.unreadCount} não lida(s)`, to, tone: 'message', category: 'messages' });
+    }
+
+    // Ação / acompanhamento por estado.
     if (c.status === 'ACTIVE' && !p) {
-      out.push({ key: `resp-${c.id}`, icon: <IconEdit size={sz} />, title: `Responda ${who}`, subtitle: 'Aguardando sua estimativa', to, tone: 'attention' });
+      out.push({ key: `resp-${c.id}`, icon: <IconEdit size={sz} />, title: `Responda ${who}`, subtitle: 'Aguardando sua estimativa', to, tone: 'attention', category: 'action' });
+    } else if (p?.status === 'PENDING') {
+      out.push({ key: `wait-${c.id}`, icon: <IconWaiting size={sz} />, title: `Aguardando resposta de ${who}`, subtitle: p.type === 'PRE' ? 'Estimativa enviada' : 'Proposta final enviada', to, tone: 'info', category: 'action' });
     } else if (p?.type === 'PRE' && p.status === 'ACCEPTED') {
-      out.push({ key: `visit-${c.id}`, icon: <IconLocation size={sz} />, title: `Agende a visita de ${who}`, subtitle: 'Estimativa aceita', to, tone: 'info' });
+      out.push({ key: `visit-${c.id}`, icon: <IconLocation size={sz} />, title: `Agende a visita de ${who}`, subtitle: 'Estimativa aceita', to, tone: 'info', category: 'agenda' });
     } else if (c.quoteStatus === 'PAID') {
-      out.push({ key: `exec-${c.id}`, icon: <IconScheduled size={sz} />, title: `Combine a execução com ${who}`, subtitle: 'Pagamento confirmado', to, tone: 'info' });
+      out.push({ key: `exec-${c.id}`, icon: <IconScheduled size={sz} />, title: `Combine a execução com ${who}`, subtitle: 'Pagamento confirmado', to, tone: 'info', category: 'agenda' });
     } else if (c.quoteStatus === 'EXECUTION_SCHEDULED') {
-      out.push({ key: `start-${c.id}`, icon: <IconExecution size={sz} />, title: `Inicie o serviço de ${who}`, subtitle: 'Execução agendada', to, tone: 'success' });
+      out.push({ key: `start-${c.id}`, icon: <IconExecution size={sz} />, title: `Inicie o serviço de ${who}`, subtitle: 'Execução agendada', to, tone: 'success', category: 'agenda' });
     }
   }
 
   const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
   const todayEnd = todayStart + 86400_000;
   for (const v of visits) {
+    const to = visitLink(v);
     if (v.status === 'RESCHEDULED') {
-      out.push({ key: `resched-${v.id}`, icon: <IconReschedule size={sz} />, title: `Confirme a nova data com ${v.clientName}`, subtitle: 'Cliente sugeriu outro horário', to: `/conversa/${v.quoteId}`, tone: 'attention' });
+      out.push({ key: `resched-${v.id}`, icon: <IconReschedule size={sz} />, title: `Confirme a nova data com ${v.clientName}`, subtitle: 'Cliente sugeriu outro horário', to, tone: 'attention', category: 'agenda' });
     }
     if (v.scheduledAt && v.status !== 'CANCELED') {
       const t = new Date(v.scheduledAt).getTime();
       if (t >= todayStart && t < todayEnd) {
-        out.push({ key: `today-${v.id}`, icon: <IconClock size={sz} />, title: `Hoje: ${v.clientName} às ${timeOf(v.scheduledAt)}`, subtitle: v.type === 'EXECUTION' ? 'Execução' : 'Visita técnica', to: `/conversa/${v.quoteId}`, tone: 'attention' });
+        out.push({ key: `today-${v.id}`, icon: <IconClock size={sz} />, title: `Hoje: ${v.clientName}`, subtitle: v.type === 'EXECUTION' ? 'Execução' : 'Visita técnica', meta: timeOf(v.scheduledAt), to, tone: 'attention', category: 'agenda' });
       }
     }
   }
+
+  // Financeiro: repasses recebidos na semana.
+  if (dash && dash.revenueWeekCents > 0) {
+    out.push({ key: 'finance-week', icon: <IconPayment size={sz} />, title: 'Repasses recebidos', subtitle: `${formatBRL(dash.revenueWeekCents)} nos últimos 7 dias`, to: '/app/financeiro', tone: 'finance', category: 'finance' });
+  }
+
   return out;
 }
 
+// ───────── agenda (próximos 5 dias) ─────────
 function buildAgenda(visits: ProviderVisit[]): ProviderVisit[] {
-  const now = Date.now();
-  const in7 = now + 7 * 86400_000;
+  const start = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+  const end = start + 5 * 86400_000;
   return visits
-    .filter((v) => v.scheduledAt && v.status !== 'CANCELED')
+    .filter((v) => v.scheduledAt && v.status !== 'CANCELED' && v.status !== 'COMPLETED')
     .filter((v) => {
       const t = new Date(v.scheduledAt!).getTime();
-      return t >= now - 86400_000 && t <= in7;
+      return t >= start && t <= end;
     })
-    .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''))
-    .slice(0, 6);
+    .sort((a, b) => (a.scheduledAt ?? '').localeCompare(b.scheduledAt ?? ''));
+}
+
+function visitStatusChip(status: ProviderVisit['status']): { label: string; varName: string } {
+  switch (status) {
+    case 'CONFIRMED':
+      return { label: 'Confirmada', varName: '--color-status-finished' };
+    case 'PENDING':
+    case 'SUGGESTED':
+      return { label: 'Aguardando cliente', varName: '--color-status-waiting' };
+    case 'RESCHEDULED':
+      return { label: 'Reagendar', varName: '--color-status-waiting' };
+    case 'COMPLETED':
+      return { label: 'Realizada', varName: '--color-status-finished' };
+    default:
+      return { label: status, varName: '--color-text-muted' };
+  }
 }
 
 // ───────── helpers de formatação ─────────
@@ -261,5 +344,7 @@ function dayLabel(iso: string | null): string {
   const d = new Date(iso);
   const today = new Date();
   if (d.toDateString() === today.toDateString()) return 'Hoje';
+  const tomorrow = new Date(today.getTime() + 86400_000);
+  if (d.toDateString() === tomorrow.toDateString()) return 'Amanhã';
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }

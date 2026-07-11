@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LuCalendarClock, LuCalendarPlus, LuCircleCheck, LuFilePlus, LuPlay } from 'react-icons/lu';
+import { LuCalendarClock, LuCalendarPlus, LuCircleCheck, LuFilePlus, LuFileText, LuPlay } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
@@ -29,6 +29,7 @@ import { messagesToChat, toServiceStatus } from './chatAdapter';
 import { computeNextStep } from './nextStep';
 import { NextStepBanner } from '../../components/NextStepBanner';
 import { NextActionCard } from '../../components/NextActionCard';
+import { AwaitingCard } from '../../components/AwaitingCard';
 import { VisitManageCard } from '../../components/VisitManageCard';
 
 interface ConversationChatProps {
@@ -132,6 +133,12 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const hasConfirmedVisit = !!visitsForGate.data?.some(
     (v) => v.type === 'IN_LOCO' && v.status === 'CONFIRMED',
   );
+  // Item 3: solicitações aguardando decisão do cliente → travam novas ações.
+  const finalPending =
+    conversation.latestProposal?.type === 'FINAL' && conversation.latestProposal?.status === 'PENDING';
+  const executionPending = !!visitsForGate.data?.some(
+    (v) => v.type === 'EXECUTION' && ['PENDING', 'SUGGESTED', 'RESCHEDULED'].includes(v.status),
+  );
   const nextStep = conversation
     ? computeNextStep({
         quoteStatus: conversation.quoteStatus,
@@ -176,7 +183,15 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   // Card de ação premium fixado acima do input (bottom sheet) — próxima ação do prestador.
   let nextAction: ReactNode;
   if (isActive && pane === 'none') {
-    if (paid) {
+    if (paid && executionPending) {
+      // Já enviou a data de execução — aguarda o cliente confirmar.
+      nextAction = (
+        <AwaitingCard
+          title="Aguardando confirmação do cliente"
+          description="A data de execução foi enviada e está aguardando aprovação. Você poderá reagendar quando o cliente responder."
+        />
+      );
+    } else if (paid) {
       nextAction = (
         <NextActionCard
           tone="amber"
@@ -251,7 +266,25 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         </div>
         <VisitsPanel quoteId={conversation.quoteId} mode={execPhase ? 'execution' : 'visit'} />
       </div>
-    ) : execPhase ? undefined : (
+    ) : execPhase ? undefined : finalPending ? (
+      // Proposta final enviada — aguarda decisão do cliente (trava novas ações).
+      <AwaitingCard
+        title="Aguardando resposta do cliente"
+        description="A proposta final foi enviada e está aguardando o aceite. Você será avisado assim que o cliente decidir."
+        action={
+          <button
+            type="button"
+            onClick={() => {
+              setPrefillEstimate(null);
+              setPane('proposal');
+            }}
+            className="text-xs font-medium text-primary underline hover:text-primary/80"
+          >
+            Enviar proposta revisada
+          </button>
+        }
+      />
+    ) : (
       <div className="space-y-2 border-t border-border bg-content1 px-2.5 pt-2">
         {canSendFinal && conversation.latestProposal?.type === 'PRE' && (
           <button
@@ -688,9 +721,15 @@ function ProposalForm({
       </div>
 
       {requiresVisit && !canSendFinal && (
-        <p className="rounded-md bg-card px-2 py-1 text-xs text-warning">
-          ⓘ Este orçamento pede visita técnica antes da proposta final. Agende e realize a visita para liberar.
-        </p>
+        <div className="flex items-start gap-2.5 rounded-lg border border-warning/40 bg-warning/10 p-3">
+          <LuCalendarPlus size={18} className="mt-0.5 shrink-0 text-warning" />
+          <div className="text-xs">
+            <p className="font-semibold text-warning">Este orçamento exige visita técnica</p>
+            <p className="mt-0.5 text-text-muted">
+              O cliente pediu uma visita antes da proposta final. Agende e realize a visita para liberar o envio da proposta final.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Valor (modo simples) */}
@@ -731,7 +770,7 @@ function ProposalForm({
                 <input
                   value={r.description}
                   onChange={(e) => updateItem(i, { description: e.target.value })}
-                  placeholder="Descrição do item"
+                  placeholder={r.group === 'MATERIAL' ? 'Ex.: Tinta Suvinil…' : 'Detalhe (opcional)'}
                   className="flex-1 rounded-md border border-border bg-content1 px-2 py-1 text-sm"
                 />
                 {items.length > 1 && (
@@ -759,11 +798,39 @@ function ProposalForm({
         </div>
       )}
 
-      {isPre && (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={requestsVisit} onChange={(e) => setRequestsVisit(e.target.checked)} disabled={requiresVisit} />
-          Preciso de visita técnica
-        </label>
+      {/* Item 1: decisão de visita na estimativa (só quando o cliente NÃO exige) */}
+      {isPre && !requiresVisit && (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-text-muted">Você consegue orçar à distância?</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setRequestsVisit(false)}
+              className={`rounded-lg border p-2.5 text-left text-sm transition-colors ${
+                !requestsVisit ? 'border-primary bg-primary/10' : 'border-border hover:bg-card'
+              }`}
+            >
+              <span className="flex items-center gap-1.5 font-medium">
+                <LuFileText size={15} className={!requestsVisit ? 'text-primary' : 'text-text-muted'} />
+                Orço à distância
+              </span>
+              <span className="mt-0.5 block text-xs text-text-muted">Pelas fotos e descrição</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRequestsVisit(true)}
+              className={`rounded-lg border p-2.5 text-left text-sm transition-colors ${
+                requestsVisit ? 'border-primary bg-primary/10' : 'border-border hover:bg-card'
+              }`}
+            >
+              <span className="flex items-center gap-1.5 font-medium">
+                <LuCalendarPlus size={15} className={requestsVisit ? 'text-primary' : 'text-text-muted'} />
+                Preciso visitar
+              </span>
+              <span className="mt-0.5 block text-xs text-text-muted">Ver o local antes de orçar</span>
+            </button>
+          </div>
+        </div>
       )}
 
       <textarea
