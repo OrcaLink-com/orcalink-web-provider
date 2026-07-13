@@ -3,7 +3,9 @@ import type {
   Category,
   ConversationSummary,
   CreateProposalInput,
+  LegalDoc,
   Me,
+  PendingLegal,
   Message,
   OtpChannel,
   PricingView,
@@ -165,6 +167,19 @@ export const api = {
   },
   deleteAccount() {
     return request<{ ok: boolean }>('/auth/me', { method: 'DELETE' });
+  },
+  // Documentos legais (lidos do CMS no banco)
+  getLegalDoc(slug: string) {
+    return request<LegalDoc>(`/legal/${slug}`);
+  },
+  listLegalDocs() {
+    return request<LegalDoc[]>('/legal');
+  },
+  getPendingLegal() {
+    return request<PendingLegal[]>('/legal/pending');
+  },
+  acceptLegal() {
+    return request<{ accepted: number }>('/legal/accept', { method: 'POST' });
   },
   getProfile() {
     return request<Me>('/auth/me');
