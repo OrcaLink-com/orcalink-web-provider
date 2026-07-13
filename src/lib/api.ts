@@ -160,6 +160,9 @@ export const api = {
   me() {
     return request<Me>('/auth/me');
   },
+  acceptTerms() {
+    return request<{ accepted: boolean; version: string }>('/auth/terms/accept', { method: 'POST' });
+  },
   getProfile() {
     return request<Me>('/auth/me');
   },

@@ -96,6 +96,8 @@ export interface Me {
   state: string | null;
   hasPassword: boolean;
   providerStatus: ProviderStatus | null;
+  termsVersion: string;
+  termsAccepted: boolean;
 }
 
 /** Payload de atualização de dados pessoais + endereço (PATCH /auth/me). */

@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { useMe } from './lib/queries';
 import { Layout } from './components/Layout';
+import { LegalPage } from './components/LegalPage';
+import { TermsGate } from './components/TermsGate';
 import { Spinner } from './components/ui';
 
 // Code-splitting: cada tela vira um chunk sob demanda (recharts fica isolado na Home).
@@ -33,6 +35,9 @@ export function App() {
         {/* Público: a landing é sempre a home em "/" (mesmo logado). */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <LoginPage />} />
+        {/* Documentos legais (públicos). */}
+        <Route path="/termos" element={<LegalPage doc="terms" />} />
+        <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
         {/* Compat: quem tinha "/site" salvo cai na landing. */}
         <Route path="/site" element={<Navigate to="/" replace />} />
 
@@ -44,6 +49,8 @@ export function App() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      {/* Portão de aceite dos Termos/Privacidade (bloqueia até aceitar). */}
+      {isAuthenticated && <TermsGate />}
     </Suspense>
   );
 }
