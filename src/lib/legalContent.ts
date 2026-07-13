@@ -267,11 +267,77 @@ export const PROVIDER_TERMS_DOC: LegalDoc = {
   ],
 };
 
-export const LEGAL_DOCS: Record<'terms' | 'privacy' | 'conduct' | 'provider-terms', LegalDoc> = {
+export const REFUND_DOC: LegalDoc = {
+  title: 'Política de Cancelamento e Reembolso',
+  updatedAt: '2026-07-13',
+  intro: `Esta Política explica quando e como cancelamentos e reembolsos acontecem na ${COMPANY}. O pagamento é mantido em custódia e só é repassado ao profissional após a conclusão do serviço.`,
+  sections: [
+    {
+      title: '1. Cancelamento antes do pagamento',
+      paragraphs: [
+        'Enquanto o serviço não foi pago, cliente e profissional podem encerrar a negociação livremente, sem custo.',
+      ],
+    },
+    {
+      title: '2. Cancelamento após o pagamento e antes da execução',
+      paragraphs: [
+        'Se o serviço já foi pago mas ainda não começou, o cliente pode cancelar e receber o reembolso do valor em custódia. Eventuais custos de processamento do pagamento podem ser descontados quando aplicável e informado.',
+      ],
+    },
+    {
+      title: '3. Direito de arrependimento (CDC art. 49)',
+      paragraphs: [
+        'Nas contratações pela plataforma, o cliente pode se arrepender em até 7 (sete) dias corridos, ressalvados os serviços já iniciados a pedido do cliente ou de natureza urgente.',
+      ],
+    },
+    {
+      title: '4. Cancelamento durante ou após o início da execução',
+      paragraphs: [
+        'Iniciada a execução, o reembolso pode ser parcial, proporcional à etapa já realizada e a materiais adquiridos, apurado por mediação da plataforma quando houver divergência. O profissional é remunerado pela parte efetivamente executada.',
+      ],
+    },
+    {
+      title: '5. Profissional não comparece ou não executa',
+      paragraphs: [
+        'Se o profissional não comparecer, atrasar de forma injustificada ou não executar o serviço, o valor em custódia é devolvido ao cliente e o repasse não ocorre. Reincidências podem gerar penalidades ao profissional.',
+      ],
+    },
+    {
+      title: '6. Serviço executado com problema',
+      paragraphs: [
+        'Havendo defeito ou execução em desacordo com o combinado, a plataforma media a solução: reexecução, ajuste ou reembolso (total ou parcial), conforme o caso e as evidências.',
+      ],
+    },
+    {
+      title: '7. Como solicitar',
+      paragraphs: [
+        'O pedido é feito pelo canal de contato da plataforma. Enquanto o valor está em custódia, o repasse ao profissional fica suspenso até a decisão.',
+      ],
+    },
+    {
+      title: '8. Prazos de reembolso',
+      paragraphs: [
+        'Aprovado o reembolso, o estorno é solicitado ao provedor de pagamento; o prazo de crédito depende do meio utilizado (PIX costuma ser mais rápido; cartão segue o prazo da operadora/emissor).',
+      ],
+    },
+  ],
+};
+
+export const LEGAL_DOCS: Record<'terms' | 'privacy' | 'conduct' | 'provider-terms' | 'refund', LegalDoc> = {
   terms: TERMS_DOC,
   privacy: PRIVACY_DOC,
   conduct: CONDUCT_DOC,
   'provider-terms': PROVIDER_TERMS_DOC,
+  refund: REFUND_DOC,
 };
 
 export type LegalDocKey = keyof typeof LEGAL_DOCS;
+
+/** Rota pública de cada documento (usada pelo índice `/legal`). */
+export const LEGAL_ROUTES: Record<LegalDocKey, string> = {
+  terms: '/termos',
+  privacy: '/privacidade',
+  conduct: '/conduta',
+  'provider-terms': '/termos-profissional',
+  refund: '/reembolso',
+};

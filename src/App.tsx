@@ -4,6 +4,7 @@ import { useAuth } from './auth/AuthContext';
 import { useMe } from './lib/queries';
 import { Layout } from './components/Layout';
 import { LegalPage } from './components/LegalPage';
+import { LegalIndex } from './components/LegalIndex';
 import { TermsGate } from './components/TermsGate';
 import { Spinner } from './components/ui';
 
@@ -36,10 +37,12 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <LoginPage />} />
         {/* Documentos legais (públicos). */}
+        <Route path="/legal" element={<LegalIndex />} />
         <Route path="/termos" element={<LegalPage doc="terms" />} />
         <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
         <Route path="/termos-profissional" element={<LegalPage doc="provider-terms" />} />
         <Route path="/conduta" element={<LegalPage doc="conduct" />} />
+        <Route path="/reembolso" element={<LegalPage doc="refund" />} />
         {/* Compat: quem tinha "/site" salvo cai na landing. */}
         <Route path="/site" element={<Navigate to="/" replace />} />
 
