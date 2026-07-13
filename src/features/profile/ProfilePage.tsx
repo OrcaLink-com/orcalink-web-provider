@@ -11,8 +11,10 @@ import {
   useUpdateProviderProfile,
 } from '../../lib/queries';
 import { api } from '../../lib/api';
+import { useAuth } from '../../auth/AuthContext';
 import type { PortfolioItem } from '../../lib/types';
 import { AvatarUploader } from '../../components/AvatarUploader';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button, Card, Input, Select, Spinner, Textarea } from '../../components/ui';
 
 /** Tela "Meu Perfil" do prestador: dados pessoais, endereço, senha e perfil profissional. */
@@ -43,7 +45,49 @@ export function ProfilePage() {
       <BusinessSection />
       <AddressSection profile={p} />
       <PasswordSection hasPassword={p.hasPassword} hasEmail={Boolean(p.email)} />
+      <DangerZoneSection />
     </div>
+  );
+}
+
+/* ───────── Zona de risco: excluir conta (LGPD) ───────── */
+function DangerZoneSection() {
+  const { logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove() {
+    setError(null);
+    try {
+      await api.deleteAccount();
+      await logout(); // encerra a sessão e volta pra landing
+    } catch (e) {
+      setError((e as Error).message);
+      throw e; // mantém o modal aberto em caso de erro
+    }
+  }
+
+  return (
+    <Card className="space-y-3 border-danger/30 p-5">
+      <SectionTitle icon={<LuTrash2 size={16} />} title="Excluir minha conta" />
+      <p className="text-sm text-text-muted">
+        Remove seus dados pessoais e o perfil profissional e encerra o acesso. Registros financeiros
+        exigidos por lei são mantidos de forma anonimizada. Esta ação não pode ser desfeita.
+      </p>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <Button variant="secondary" className="text-danger" onClick={() => setOpen(true)}>
+        Excluir minha conta
+      </Button>
+      <ConfirmDialog
+        open={open}
+        danger
+        title="Excluir sua conta?"
+        description="Seus dados pessoais e seu perfil profissional serão removidos e você perderá o acesso. Não é possível desfazer."
+        confirmLabel="Excluir conta"
+        onConfirm={remove}
+        onClose={() => setOpen(false)}
+      />
+    </Card>
   );
 }
 
