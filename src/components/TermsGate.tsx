@@ -41,6 +41,14 @@ export function TermsGate() {
             Li e aceito os{' '}
             <Link to="/termos" target="_blank" className="text-primary underline">
               Termos de Uso
+            </Link>
+            , o{' '}
+            <Link to="/termos-profissional" target="_blank" className="text-primary underline">
+              Termo do Profissional
+            </Link>
+            , o{' '}
+            <Link to="/conduta" target="_blank" className="text-primary underline">
+              Código de Conduta
             </Link>{' '}
             e a{' '}
             <Link to="/privacidade" target="_blank" className="text-primary underline">

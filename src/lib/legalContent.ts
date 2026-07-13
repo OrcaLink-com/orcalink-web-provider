@@ -136,7 +136,142 @@ export const PRIVACY_DOC: LegalDoc = {
   ],
 };
 
-export const LEGAL_DOCS: Record<'terms' | 'privacy', LegalDoc> = {
+export const CONDUCT_DOC: LegalDoc = {
+  title: 'Código de Conduta',
+  updatedAt: '2026-07-13',
+  intro: `Este Código estabelece as regras de convivência e uso da plataforma ${COMPANY} para clientes e profissionais. O objetivo é manter um ambiente seguro, honesto e respeitoso para todos.`,
+  sections: [
+    {
+      title: '1. Respeito e comunicação',
+      paragraphs: [
+        'Trate todos com cordialidade e profissionalismo. Não são tolerados assédio, ameaças, discriminação (por raça, gênero, religião, orientação, deficiência ou qualquer outra), discurso de ódio ou linguagem ofensiva no chat ou em qualquer interação.',
+      ],
+    },
+    {
+      title: '2. Informações verdadeiras',
+      paragraphs: [
+        'Forneça dados reais e atualizados (identidade, contato, endereço, descrição do serviço). Fotos e descrições devem representar fielmente o serviço ou a necessidade. Informações falsas podem levar à suspensão.',
+      ],
+    },
+    {
+      title: '3. Mantenha a negociação na plataforma',
+      paragraphs: [
+        `A negociação, o agendamento, o pagamento e a comunicação devem ocorrer dentro da ${COMPANY}. Combinar o serviço "por fora" para evitar a comissão (desintermediação) desprotege ambas as partes — sem custódia do pagamento, sem histórico e sem mediação — e viola este Código.`,
+      ],
+    },
+    {
+      title: '4. Condutas proibidas',
+      paragraphs: [
+        'É proibido: publicar conteúdo ilícito, fraudulento ou enganoso; usar a plataforma para fins diferentes da contratação de serviços; tentar burlar taxas ou o sistema de pagamento; criar contas falsas ou múltiplas para manipular avaliações; e compartilhar dados de terceiros sem autorização.',
+      ],
+    },
+    {
+      title: '5. Segurança e privacidade',
+      paragraphs: [
+        'Não solicite nem compartilhe senhas, códigos de acesso ou dados sensíveis fora dos fluxos oficiais. Use os dados da outra parte apenas para viabilizar o serviço contratado.',
+      ],
+    },
+    {
+      title: '6. Avaliações honestas',
+      paragraphs: [
+        'As avaliações devem refletir a experiência real. É proibido comprar, trocar, coagir ou fraudar avaliações.',
+      ],
+    },
+    {
+      title: '7. Denúncias e mediação',
+      paragraphs: [
+        `Situações de descumprimento podem ser reportadas pelo canal de contato. A ${COMPANY} pode mediar conflitos e, quando necessário, reter ou devolver valores em custódia conforme as políticas aplicáveis.`,
+      ],
+    },
+    {
+      title: '8. Consequências',
+      paragraphs: [
+        'O descumprimento deste Código pode resultar em advertência, suspensão temporária ou encerramento definitivo da conta, sem prejuízo das medidas legais cabíveis.',
+      ],
+    },
+  ],
+};
+
+export const PROVIDER_TERMS_DOC: LegalDoc = {
+  title: 'Termo do Profissional',
+  updatedAt: '2026-07-13',
+  intro: `Este Termo regula a relação entre o profissional (prestador de serviços) e a plataforma ${COMPANY}. Ao se cadastrar e enviar propostas, o profissional declara ter lido e aceito estas condições.`,
+  sections: [
+    {
+      title: '1. Natureza da relação — autonomia, sem vínculo',
+      paragraphs: [
+        `O profissional atua de forma autônoma e independente. Este Termo NÃO cria vínculo empregatício, societário, de representação ou de subordinação com a ${COMPANY}. Não há jornada, exclusividade, hierarquia ou pessoalidade: o profissional organiza seu próprio trabalho, define seus preços e decide quais oportunidades atender.`,
+        `A ${COMPANY} é apenas intermediadora tecnológica que aproxima clientes e profissionais; não é empregadora, contratante do serviço nem tomadora de mão de obra.`,
+      ],
+    },
+    {
+      title: '2. Cadastro e qualificação',
+      paragraphs: [
+        'O profissional deve fornecer dados verdadeiros (identidade, CPF/CNPJ, contato) e, quando aplicável, comprovar habilitação/regularidade para a atividade. O cadastro está sujeito à análise e aprovação, que podem ser revistas a qualquer tempo.',
+      ],
+    },
+    {
+      title: '3. Execução do serviço',
+      paragraphs: [
+        'A execução, a qualidade, a segurança, os materiais, os prazos e a garantia do serviço são de responsabilidade exclusiva do profissional. As propostas (estimativa e proposta final) devem ser claras e cumpridas conforme acordado com o cliente no chat.',
+      ],
+    },
+    {
+      title: '4. Preço, comissão e repasse',
+      paragraphs: [
+        `O profissional define o valor que deseja receber. Sobre os serviços concluídos, a ${COMPANY} retém uma comissão informada de forma transparente. O pagamento do cliente fica em custódia e o repasse ocorre após a confirmação da conclusão (pelo cliente ou por mediação).`,
+      ],
+    },
+    {
+      title: '5. Obrigações fiscais e tributárias',
+      paragraphs: [
+        'O profissional é o único responsável por suas obrigações fiscais, tributárias e previdenciárias, incluindo a emissão de documento fiscal quando exigido e o recolhimento dos tributos incidentes sobre o serviço prestado.',
+      ],
+    },
+    {
+      title: '6. Conduta e uso da plataforma',
+      paragraphs: [
+        `O profissional deve seguir o Código de Conduta. É vedado fechar o serviço fora da plataforma para burlar a comissão (desintermediação), assediar clientes, ou manipular avaliações. O descumprimento pode levar à suspensão ou descredenciamento.`,
+      ],
+    },
+    {
+      title: '7. Avaliações e reputação',
+      paragraphs: [
+        'O profissional pode ser avaliado pelos clientes após a conclusão. As avaliações compõem sua reputação pública e devem refletir a experiência real; a plataforma pode moderar conteúdo abusivo.',
+      ],
+    },
+    {
+      title: '8. Cancelamento, ausência e mediação',
+      paragraphs: [
+        'Cancelamentos e reagendamentos devem ser comunicados o quanto antes pelo chat. Ausências injustificadas (no-show) e descumprimentos reiterados podem gerar penalidades. Conflitos são tratados pela mediação da plataforma conforme as políticas aplicáveis.',
+      ],
+    },
+    {
+      title: '9. Suspensão e descredenciamento',
+      paragraphs: [
+        `A ${COMPANY} pode suspender ou encerrar o acesso do profissional em caso de violação deste Termo, do Código de Conduta ou da lei, ou por risco à segurança de clientes e da plataforma.`,
+      ],
+    },
+    {
+      title: '10. Responsabilidade',
+      paragraphs: [
+        `O profissional responde por danos causados a clientes ou terceiros na prestação do serviço e isenta a ${COMPANY} de responsabilidade por atos que sejam de sua alçada como executor autônomo.`,
+      ],
+    },
+    {
+      title: '11. Vigência e alterações',
+      paragraphs: [
+        'Este Termo vigora enquanto durar o cadastro. Alterações relevantes exigem novo aceite. Aplica-se a legislação brasileira.',
+      ],
+    },
+  ],
+};
+
+export const LEGAL_DOCS: Record<'terms' | 'privacy' | 'conduct' | 'provider-terms', LegalDoc> = {
   terms: TERMS_DOC,
   privacy: PRIVACY_DOC,
+  conduct: CONDUCT_DOC,
+  'provider-terms': PROVIDER_TERMS_DOC,
 };
+
+export type LegalDocKey = keyof typeof LEGAL_DOCS;
