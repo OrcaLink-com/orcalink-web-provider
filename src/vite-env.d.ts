@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
   readonly VITE_BRAND_NAME?: string;
+  readonly VITE_SENTRY_DSN?: string;
 }
 
 interface ImportMeta {
