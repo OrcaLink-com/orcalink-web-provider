@@ -205,10 +205,11 @@ export const api = {
   unregisterPushToken(token: string) {
     return request<void>('/notifications/push/register', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
   },
-  uploadImage(file: File) {
+  uploadImage(file: File, kind?: string) {
     const form = new FormData();
     form.append('file', file);
-    return request<UploadResult>('/uploads', { method: 'POST', body: form });
+    const qs = kind ? `?kind=${encodeURIComponent(kind)}` : '';
+    return request<UploadResult>(`/uploads${qs}`, { method: 'POST', body: form });
   },
   getProviderProfile() {
     return request<ProviderProfile>('/provider/me/profile');

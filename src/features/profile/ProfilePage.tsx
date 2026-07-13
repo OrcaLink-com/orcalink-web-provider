@@ -195,11 +195,11 @@ function BusinessSection() {
     setCategoryIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   }
 
-  async function uploadTo(file: File, apply: (url: string) => void) {
+  async function uploadTo(file: File, apply: (url: string) => void, kind: string) {
     setUploading(true);
     setError(null);
     try {
-      const res = await api.uploadImage(file);
+      const res = await api.uploadImage(file, kind);
       apply(res.url);
     } catch (err) {
       setError((err as Error).message);
@@ -211,19 +211,21 @@ function BusinessSection() {
   function onCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (file) void uploadTo(file, (url) => setF((s) => ({ ...s, coverUrl: url })));
+    if (file) void uploadTo(file, (url) => setF((s) => ({ ...s, coverUrl: url })), 'cover');
   }
   function onLogo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (file) void uploadTo(file, (url) => setF((s) => ({ ...s, logoUrl: url })));
+    if (file) void uploadTo(file, (url) => setF((s) => ({ ...s, logoUrl: url })), 'logo');
   }
   function onAddPortfolio(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (file)
-      void uploadTo(file, (url) =>
-        setPortfolio((prev) => [...prev, { id: `${Date.now()}`, url, title: '', description: '' }]),
+      void uploadTo(
+        file,
+        (url) => setPortfolio((prev) => [...prev, { id: `${Date.now()}`, url, title: '', description: '' }]),
+        'portfolio',
       );
   }
   function updateItem(idx: number, patch: Partial<PortfolioItem>) {
