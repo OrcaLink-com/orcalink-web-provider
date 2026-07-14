@@ -47,6 +47,13 @@ export function OnboardingChecklist() {
       to: '/app/perfil',
     },
     {
+      key: 'document',
+      label: 'Informe seu CPF ou CNPJ',
+      hint: 'Necessário para receber os pagamentos dos serviços.',
+      done: Boolean(p.document),
+      to: '/app/perfil',
+    },
+    {
       key: 'area',
       label: 'Defina sua área de atendimento',
       hint: 'O raio de distância em que você atende.',

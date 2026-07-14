@@ -184,6 +184,7 @@ export interface ProviderProfile {
   citiesServed: string[];
   avgResponseMinutes: number | null;
   phone: string | null;
+  document: string | null; // CPF/CNPJ (privado — só o próprio prestador)
   categoryIds: string[];
   portfolio: PortfolioItem[];
   social: ProviderSocial;
@@ -214,6 +215,7 @@ export interface UpdateProviderProfileInput {
   citiesServed?: string[];
   avgResponseMinutes?: number;
   phone?: string;
+  document?: string;
   categoryIds?: string[];
   portfolio?: PortfolioItem[];
   social?: ProviderSocial;

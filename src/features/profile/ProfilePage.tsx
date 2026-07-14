@@ -155,6 +155,7 @@ function BusinessSection() {
     citiesServed: '',
     avgResponseMinutes: '',
     phone: '',
+    document: '',
   });
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
@@ -181,6 +182,7 @@ function BusinessSection() {
       citiesServed: d.citiesServed.join(', '),
       avgResponseMinutes: d.avgResponseMinutes != null ? String(d.avgResponseMinutes) : '',
       phone: d.phone ?? '',
+      document: d.document ?? '',
     });
     setCategoryIds(d.categoryIds);
     setPortfolio(d.portfolio);
@@ -250,6 +252,9 @@ function BusinessSection() {
         citiesServed: toList(f.citiesServed),
         avgResponseMinutes: f.avgResponseMinutes ? Number(f.avgResponseMinutes) : undefined,
         phone: f.phone.trim() || undefined,
+        // Só envia o documento se mudou (evita revalidar/limpar um valor legado).
+        document:
+          f.document.trim() !== (profileQ.data?.document ?? '') ? f.document.trim() : undefined,
         categoryIds,
         portfolio,
         social: {
@@ -308,6 +313,12 @@ function BusinessSection() {
       <div className="grid grid-cols-2 gap-3">
         <Input label="Nome da empresa" value={f.companyName} onChange={set('companyName')} placeholder="Pinturas Silva ME" />
         <Input label="Nome fantasia" value={f.tradeName} onChange={set('tradeName')} placeholder="Silva Pinturas" />
+      </div>
+      <div>
+        <Input label="CPF ou CNPJ" value={f.document} onChange={set('document')} placeholder="Somente números" />
+        <p className="mt-1 text-xs text-text-muted">
+          Necessário para receber os pagamentos. Fica visível somente para você.
+        </p>
       </div>
       <Textarea label="Descrição da empresa" value={f.bio} onChange={set('bio')} minRows={3} placeholder="O que sua empresa faz, diferenciais…" />
       <Textarea label="História da empresa" value={f.history} onChange={set('history')} minRows={3} placeholder="Como tudo começou…" />
