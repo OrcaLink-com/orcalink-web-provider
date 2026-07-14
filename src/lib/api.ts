@@ -1,6 +1,7 @@
 import type {
   AuthUser,
   Category,
+  CepLookup,
   ConversationSummary,
   CreateProposalInput,
   LegalDoc,
@@ -180,6 +181,10 @@ export const api = {
   },
   acceptLegal() {
     return request<{ accepted: number }>('/legal/accept', { method: 'POST' });
+  },
+  /** Endereço completo por CEP (ViaCEP + coordenadas). */
+  lookupCep(cep: string) {
+    return request<CepLookup>(`/geocode/lookup?cep=${encodeURIComponent(cep)}`);
   },
   getProfile() {
     return request<Me>('/auth/me');

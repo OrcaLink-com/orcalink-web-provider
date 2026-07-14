@@ -119,6 +119,17 @@ export interface PendingLegal {
   version: string;
 }
 
+/** Endereço completo retornado pelo CEP (autopreenchimento). */
+export interface CepLookup {
+  cep: string;
+  street?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export interface UpdateMeInput {
   name?: string;
   phone?: string;
