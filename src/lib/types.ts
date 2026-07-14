@@ -94,6 +94,9 @@ export interface Me {
   neighborhood: string | null;
   city: string | null;
   state: string | null;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  createdAt: string;
   hasPassword: boolean;
   providerStatus: ProviderStatus | null;
   termsVersion: string;

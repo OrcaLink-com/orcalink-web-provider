@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { LuArrowLeft, LuBriefcase, LuLock, LuMapPin, LuTrash2, LuUser, LuImagePlus } from 'react-icons/lu';
+import { LuArrowLeft, LuBadgeCheck, LuBriefcase, LuLock, LuMapPin, LuTrash2, LuUser, LuImagePlus } from 'react-icons/lu';
 import { useNavigate } from 'react-router-dom';
 import {
   useCategories,
   useProfile,
+  useProviderDashboard,
   useProviderProfile,
   useRequestPasswordOtp,
   useSetPassword,
@@ -16,7 +17,7 @@ import type { PortfolioItem } from '../../lib/types';
 import { AvatarUploader } from '../../components/AvatarUploader';
 import { CepField } from '../../components/CepField';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { Button, Card, Input, Select, Spinner, Textarea } from '../../components/ui';
+import { Button, Card, Input, RatingStars, Select, Spinner, Textarea } from '../../components/ui';
 
 /**
  * "Meu Perfil" do prestador: um ÚNICO formulário (dados pessoais + empresa +
@@ -56,6 +57,7 @@ export function ProfilePage() {
 function ProfileForm({ profile }: { profile: NonNullable<ReturnType<typeof useProfile>['data']> }) {
   const providerQ = useProviderProfile();
   const categoriesQ = useCategories();
+  const dashQ = useProviderDashboard();
   const updateMe = useUpdateMe();
   const updateBiz = useUpdateProviderProfile();
   const coverRef = useRef<HTMLInputElement>(null);
@@ -255,22 +257,69 @@ function ProfileForm({ profile }: { profile: NonNullable<ReturnType<typeof usePr
       }}
       className="space-y-4"
     >
+      {/* Hero de identidade */}
+      <Card className="overflow-hidden p-0">
+        <div className="relative h-28 w-full bg-gradient-to-br from-primary/25 to-content2 sm:h-36">
+          {f.coverUrl && <img src={f.coverUrl} alt="" className="h-full w-full object-cover" />}
+          <button
+            type="button"
+            onClick={() => coverRef.current?.click()}
+            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs text-white backdrop-blur hover:bg-black/70"
+          >
+            <LuImagePlus size={14} /> Alterar capa
+          </button>
+          <button
+            type="button"
+            onClick={() => logoRef.current?.click()}
+            aria-label="Alterar logo"
+            className="absolute -bottom-6 left-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-2 border-content1 bg-content2 shadow-pop"
+          >
+            {f.logoUrl ? <img src={f.logoUrl} alt="" className="h-full w-full object-cover" /> : <LuImagePlus size={18} className="text-text-muted" />}
+          </button>
+          <input ref={coverRef} type="file" accept="image/*" onChange={onCover} className="hidden" />
+          <input ref={logoRef} type="file" accept="image/*" onChange={onLogo} className="hidden" />
+        </div>
+        <div className="px-4 pb-4 pt-8">
+          <div className="flex items-start gap-3">
+            <AvatarUploader value={avatarUrl} name={name} onChange={(u) => void saveAvatar(u)} />
+            <div className="min-w-0 flex-1 pt-1">
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-lg font-bold">{name || 'Seu nome'}</p>
+                {(profile.emailVerified || profile.phoneVerified) && (
+                  <LuBadgeCheck size={18} className="shrink-0 text-primary" />
+                )}
+              </div>
+              {f.companyName && <p className="truncate text-sm text-text-muted">{f.companyName}</p>}
+              {dashQ.data && (
+                <div className="mt-1">
+                  <RatingStars value={dashQ.data.ratingAvg} count={dashQ.data.ratingCount} />
+                </div>
+              )}
+            </div>
+          </div>
+          {dashQ.data && (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <Stat label="Orçamentos" value={String(dashQ.data.proposalsSent)} />
+              <Stat label="Concluídos" value={String(dashQ.data.finished)} />
+              <Stat label="Membro desde" value={memberSince(profile.createdAt)} />
+            </div>
+          )}
+        </div>
+      </Card>
+
       {/* Dados pessoais */}
       <Card className="space-y-4 p-5">
         <SectionTitle icon={<LuUser size={16} />} title="Informações pessoais" />
-        <div className="flex items-center gap-4">
-          <AvatarUploader value={avatarUrl} name={name} onChange={(u) => void saveAvatar(u)} />
-          <div className="text-sm text-text-muted">
-            <p className="font-medium text-foreground">Foto de perfil</p>
-            <p>Toque na foto para trocar, recortar e enviar.</p>
-          </div>
-        </div>
         <Input label="Nome" value={name} onChange={setName} />
-        <Input label="Telefone" value={personalPhone} onChange={setPersonalPhone} placeholder="(11) 99999-8888" />
         <div>
-          <p className="mb-1 text-sm text-text-muted">E-mail</p>
-          <div className="rounded-medium border border-border bg-content2/50 px-3 py-2.5 text-sm text-text-muted">
-            {profile.email ?? 'Sem e-mail cadastrado'}
+          <Input label="Telefone" value={personalPhone} onChange={setPersonalPhone} placeholder="(11) 99999-8888" />
+          {profile.phoneVerified && <VerifiedChip />}
+        </div>
+        <div>
+          <p className="mb-1 text-sm font-medium text-foreground">E-mail</p>
+          <div className="flex items-center gap-2 rounded-medium border border-border bg-content2/50 px-3 py-2.5 text-sm text-text-muted">
+            <span className="truncate">{profile.email ?? 'Sem e-mail cadastrado'}</span>
+            {profile.emailVerified && <span className="ml-auto shrink-0"><VerifiedChip /></span>}
           </div>
         </div>
       </Card>
@@ -278,36 +327,7 @@ function ProfileForm({ profile }: { profile: NonNullable<ReturnType<typeof usePr
       {/* Perfil da empresa */}
       <Card className="space-y-5 p-5">
         <SectionTitle icon={<LuBriefcase size={16} />} title="Perfil da empresa" />
-
-        <div>
-          <p className="mb-1 text-sm text-text-muted">Foto de capa (banner)</p>
-          <button
-            type="button"
-            onClick={() => coverRef.current?.click()}
-            className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-content2/40 text-text-muted hover:bg-content2"
-          >
-            {f.coverUrl ? (
-              <img src={f.coverUrl} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <span className="flex items-center gap-2 text-sm"><LuImagePlus size={18} /> Adicionar capa</span>
-            )}
-          </button>
-          <input ref={coverRef} type="file" accept="image/*" onChange={onCover} className="hidden" />
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => logoRef.current?.click()}
-            className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border bg-content2/40 text-text-muted hover:bg-content2"
-          >
-            {f.logoUrl ? <img src={f.logoUrl} alt="" className="h-full w-full object-cover" /> : <LuImagePlus size={18} />}
-          </button>
-          <div className="text-sm text-text-muted">
-            <p className="font-medium text-foreground">Logo da empresa</p>
-            <p>Aparece no seu perfil público.</p>
-          </div>
-          <input ref={logoRef} type="file" accept="image/*" onChange={onLogo} className="hidden" />
-        </div>
+        <p className="-mt-3 text-xs text-text-muted">Essas informações ajudam os clientes a conhecerem melhor o seu trabalho. A capa e a logo você troca no topo.</p>
 
         <div className="grid grid-cols-2 gap-3">
           <Input label="Nome da empresa" value={f.companyName} onChange={set('companyName')} placeholder="Pinturas Silva ME" />
@@ -315,8 +335,9 @@ function ProfileForm({ profile }: { profile: NonNullable<ReturnType<typeof usePr
         </div>
         <div>
           <Input label="CPF ou CNPJ" value={f.document} onChange={set('document')} placeholder="Somente números" />
-          <p className="mt-1 text-xs text-text-muted">
-            Necessário para receber os pagamentos. Fica visível somente para você.
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
+            <span className="inline-flex items-center gap-1 rounded-full bg-content2 px-2 py-0.5 text-[10px] font-semibold">🔒 Privado</span>
+            Necessário para receber os pagamentos. Visível somente para você.
           </p>
         </div>
         <Textarea label="Descrição da empresa" value={f.bio} onChange={set('bio')} minRows={3} placeholder="O que sua empresa faz, diferenciais…" />
@@ -550,6 +571,30 @@ function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string })
       {title}
     </div>
   );
+}
+
+/** Card de número do hero (Orçamentos, Concluídos, Membro desde). */
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-medium border border-border bg-content2/40 px-2 py-2.5 text-center">
+      <p className="truncate text-base font-bold leading-none">{value}</p>
+      <p className="mt-1 text-[11px] text-text-muted">{label}</p>
+    </div>
+  );
+}
+
+function VerifiedChip() {
+  return (
+    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
+      <LuBadgeCheck size={12} /> Verificado
+    </span>
+  );
+}
+
+/** "jun 2026" a partir de uma data ISO. */
+function memberSince(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
 }
 
 function useAutoHide(active: boolean, hide: () => void) {
