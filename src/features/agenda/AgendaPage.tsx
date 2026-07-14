@@ -25,6 +25,21 @@ import { ConversationDrawer } from '../conversations/ConversationDrawer';
 type Tab = 'calendario' | 'compromissos' | 'disponibilidade';
 type Period = 'all' | 'today' | 'upcoming' | 'past';
 
+/** Endereço completo do serviço (a visita já está agendada → liberado). */
+function fullAddress(v: ProviderVisit): string {
+  return (
+    [
+      [v.street, v.number].filter(Boolean).join(', '),
+      v.complement,
+      v.neighborhood,
+      [v.city, v.state].filter(Boolean).join('/'),
+      v.zipCode ? `CEP ${v.zipCode}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ') || '—'
+  );
+}
+
 const STATUS_LABEL: Record<VisitStatus, string> = {
   PENDING: 'Pendente',
   SUGGESTED: 'Aguardando cliente',
@@ -137,7 +152,7 @@ function VisitDetail({ visit: v }: { visit: ProviderVisit }) {
       <Row label="Serviço" value={`${v.quoteCategoryName} · ${TYPE_LABEL[v.type]}`} />
       <Row label="Quando" value={v.scheduledAt ? formatDateTime(v.scheduledAt) : '—'} />
       {v.endsAt && <Row label="Até" value={formatDateTime(v.endsAt)} />}
-      <Row label="Endereço / CEP" value={v.zipCode ?? '—'} />
+      <Row label="Endereço" value={fullAddress(v)} />
       <div className="flex items-center justify-between gap-2">
         <span className="text-text-muted">Status da visita</span>
         <span className="font-medium">{STATUS_LABEL[v.status]}</span>
@@ -302,9 +317,9 @@ function AppointmentCard({
             <span className="inline-flex items-center gap-1">
               <IconUser size={12} /> {v.scheduledAt ? formatDateTime(v.scheduledAt) : '—'}
             </span>
-            {v.zipCode && (
+            {(v.street || v.zipCode) && (
               <span className="inline-flex items-center gap-1">
-                <IconLocation size={12} /> {v.zipCode}
+                <IconLocation size={12} /> {[v.street, v.number].filter(Boolean).join(', ') || v.zipCode}
               </span>
             )}
           </p>

@@ -12,9 +12,9 @@ import {
 } from '../../lib/queries';
 import { api } from '../../lib/api';
 import { useAuth } from '../../auth/AuthContext';
-import { useCep } from '../../lib/useCep';
 import type { PortfolioItem } from '../../lib/types';
 import { AvatarUploader } from '../../components/AvatarUploader';
+import { CepField } from '../../components/CepField';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Button, Card, Input, Select, Spinner, Textarea } from '../../components/ui';
 
@@ -413,23 +413,18 @@ function AddressSection({ profile }: { profile: NonNullable<ReturnType<typeof us
     state: profile.state ?? '',
   });
   const [ok, setOk] = useState(false);
-  const cep = useCep();
   useAutoHide(ok, () => setOk(false));
   const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Preenche rua/bairro/cidade/UF a partir do CEP (ViaCEP).
-  async function onCep(v: string) {
-    setForm((f) => ({ ...f, zipCode: v }));
-    const r = await cep.lookup(v);
-    if (r) {
-      setForm((f) => ({
-        ...f,
-        street: r.street || f.street,
-        neighborhood: r.neighborhood || f.neighborhood,
-        city: r.city || f.city,
-        state: r.state || f.state,
-      }));
-    }
+  // Preenche rua/bairro/cidade/UF a partir do resultado do CEP (mantém o número).
+  function applyCep(r: { street?: string; neighborhood?: string; city?: string; state?: string }) {
+    setForm((f) => ({
+      ...f,
+      street: r.street || f.street,
+      neighborhood: r.neighborhood || f.neighborhood,
+      city: r.city || f.city,
+      state: r.state || f.state,
+    }));
   }
 
   async function save() {
@@ -440,13 +435,9 @@ function AddressSection({ profile }: { profile: NonNullable<ReturnType<typeof us
   return (
     <Card className="space-y-4 p-5">
       <SectionTitle icon={<LuMapPin size={16} />} title="Endereço" />
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="CEP" value={form.zipCode} onChange={(v) => void onCep(v)} placeholder="00000-000" />
-        <Input label="Número" value={form.number} onChange={set('number')} />
-      </div>
-      {cep.loading && <p className="text-xs text-text-muted">Buscando endereço pelo CEP…</p>}
-      {cep.error && <p className="text-xs text-warning">{cep.error} Preencha manualmente.</p>}
+      <CepField value={form.zipCode} onChange={set('zipCode')} onResolved={applyCep} />
       <Input label="Rua" value={form.street} onChange={set('street')} />
+      <Input label="Número" value={form.number} onChange={set('number')} />
       <Input label="Bairro" value={form.neighborhood} onChange={set('neighborhood')} />
       <div className="grid grid-cols-2 gap-3">
         <Input label="Cidade" value={form.city} onChange={set('city')} />

@@ -435,6 +435,12 @@ export interface ProviderVisit extends Visit {
   quoteCategoryName: string;
   clientName: string;
   zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
   quoteStatus: QuoteStatus;
   conversationId: string | null;
 }
