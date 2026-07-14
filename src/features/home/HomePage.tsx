@@ -34,6 +34,7 @@ import {
   IconSuccess,
   IconWaiting,
 } from '../../components/icons';
+import { OnboardingChecklist } from '../../components/OnboardingChecklist';
 import type { ConversationSummary, ProviderDashboard, ProviderVisit } from '../../lib/types';
 
 export function HomePage() {
@@ -68,6 +69,9 @@ export function HomePage() {
         </div>
         {d && <RatingStars value={d.ratingAvg} count={d.ratingCount} />}
       </header>
+
+      {/* Onboarding: some sozinho quando o cadastro está completo */}
+      <OnboardingChecklist />
 
       {/* Métricas principais */}
       {d && (
