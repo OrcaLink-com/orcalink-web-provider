@@ -249,7 +249,14 @@ export interface ProviderQuote {
   clientName: string;
   title: string | null;
   description: string;
+  // Região sempre visível; endereço exato só quando addressVisible (visita/execução agendada).
+  city: string | null;
+  neighborhood: string | null;
+  addressVisible: boolean;
   zipCode: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
   status: QuoteStatus;
   proposalsCount: number;
   budgetMaxCents: number | null;

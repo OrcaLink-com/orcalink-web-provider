@@ -79,7 +79,7 @@ export function QuoteDetailPage() {
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <Field label="Categoria" value={quote.categoryName} />
           <Field label="Modo" value={quote.requiresVisit ? 'Com visita técnica' : 'À distância'} />
-          <Field label="Endereço / CEP" value={quote.zipCode ?? '—'} />
+          <Field label="Região" value={[quote.neighborhood, quote.city].filter(Boolean).join(' · ') || '—'} />
           {quote.budgetMaxCents != null && (
             <Field label="Orçamento máximo" value={formatBRL(quote.budgetMaxCents)} />
           )}
@@ -88,6 +88,25 @@ export function QuoteDetailPage() {
           )}
           <Field label="Criado em" value={formatDateTime(quote.createdAt)} />
         </dl>
+
+        {/* Endereço exato: só liberado quando há visita/execução agendada (privacidade do cliente). */}
+        {quote.addressVisible ? (
+          <div className="mt-3 rounded-medium border border-border bg-content2/50 p-3 text-sm">
+            <p className="mb-1 text-xs font-semibold text-text-muted">Endereço do serviço</p>
+            <p>
+              {[quote.street, quote.number].filter(Boolean).join(', ') || '—'}
+              {quote.complement ? ` — ${quote.complement}` : ''}
+            </p>
+            <p className="text-text-muted">
+              {[quote.neighborhood, quote.city].filter(Boolean).join(' · ')}
+              {quote.zipCode ? ` · CEP ${quote.zipCode}` : ''}
+            </p>
+          </div>
+        ) : (
+          <p className="mt-3 rounded-medium bg-content2/50 px-3 py-2 text-xs text-text-muted">
+            🔒 O endereço completo é liberado quando a visita ou a execução for agendada.
+          </p>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {quote.requiresVisit && (
             <StatusChip label="Pede visita técnica" varName="--color-status-waiting" size="sm" />

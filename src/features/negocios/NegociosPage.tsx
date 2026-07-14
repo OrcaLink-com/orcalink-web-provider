@@ -238,11 +238,12 @@ function OpportunityCard({ quote: q, onView }: { quote: ProviderQuote; onView: (
       <p className="line-clamp-2 text-sm text-text-muted">{q.description}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
-        {q.distanceKm != null && (
+        {(q.neighborhood || q.city) && (
           <span className="inline-flex items-center gap-1">
-            <IconLocation size={12} /> {q.distanceKm.toFixed(1)} km
+            <IconLocation size={12} /> {[q.neighborhood, q.city].filter(Boolean).join(', ')}
           </span>
         )}
+        {q.distanceKm != null && <span>{q.distanceKm.toFixed(1)} km</span>}
         <span>{formatDateTime(q.createdAt)}</span>
         {q.budgetMaxCents != null && (
           <span className="font-medium text-primary">até {formatBRL(q.budgetMaxCents)}</span>
