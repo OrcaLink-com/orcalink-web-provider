@@ -1,9 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { LuLayoutGrid } from 'react-icons/lu';
 import { useNotifications } from '../lib/queries';
-import { IconHome, IconBusiness, IconAgenda, IconUser } from './icons';
+import { IconHome, IconBusiness, IconAgenda } from './icons';
 
-/** Navegação inferior do app Prestador: 🏠 Home · 💼 Trabalhos · 📅 Agenda · 👤 Eu. */
+/**
+ * Navegação inferior do app Prestador (mobile): 🏠 Home · 💼 Trabalhos · 📅 Agenda
+ * · ▦ Mais. "Mais" abre o hub com o restante (perfil, financeiro, área, suporte…).
+ */
 export function TabBar() {
   const q = useNotifications();
   const unread = q.data?.unreadCount ?? 0;
@@ -12,7 +16,7 @@ export function TabBar() {
       <Tab to="/app" icon={<IconHome size={22} />} label="Home" />
       <Tab to="/app/negocios" icon={<IconBusiness size={22} />} label="Trabalhos" badge={unread} />
       <Tab to="/app/agenda" icon={<IconAgenda size={22} />} label="Agenda" />
-      <Tab to="/app/eu" icon={<IconUser size={22} />} label="Eu" />
+      <Tab to="/app/eu" icon={<LuLayoutGrid size={22} />} label="Mais" />
     </nav>
   );
 }

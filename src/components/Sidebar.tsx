@@ -1,11 +1,20 @@
-import { NavLink, Link } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { NavLink, Link, useLocation } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { LuChevronDown } from 'react-icons/lu';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { useAuth } from '../auth/AuthContext';
 import { NotificationsBell } from './NotificationsBell';
 import { useNotifications, useProfile } from '../lib/queries';
 import { Avatar } from './ui';
-import { IconHome, IconBusiness, IconAgenda, IconInbox, IconWallet, IconUser, IconLogout } from './icons';
+import { IconHome, IconBusiness, IconAgenda, IconArea, IconInbox, IconWallet, IconUser, IconLogout } from './icons';
+
+const PROFILE_SUBS: { s: string; label: string }[] = [
+  { s: 'dados', label: 'Dados pessoais' },
+  { s: 'empresa', label: 'Empresa' },
+  { s: 'endereco', label: 'Endereço' },
+  { s: 'portfolio', label: 'Portfólio' },
+  { s: 'seguranca', label: 'Segurança' },
+];
 
 /** Sidebar de navegação (desktop ≥lg). No mobile a navegação fica na bottom TabBar. */
 export function Sidebar() {
@@ -27,10 +36,11 @@ export function Sidebar() {
       <nav className="mt-6 space-y-1">
         <Item to="/app" icon={<IconHome size={20} />} label="Home" end />
         <Item to="/app/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
+        <Item to="/app/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
         <Item to="/app/inbox" icon={<IconInbox size={20} />} label="Notificações" badge={unread} />
         <Item to="/app/financeiro" icon={<IconWallet size={20} />} label="Financeiro" />
-        <Item to="/app/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
-        <Item to="/app/eu" icon={<IconUser size={20} />} label="Eu" />
+        <Item to="/app/area" icon={<IconArea size={20} />} label="Área de atendimento" />
+        <ProfileGroup />
       </nav>
 
       <div className="mt-auto border-t border-border pt-3">
@@ -43,6 +53,51 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+/** "Meu perfil" como grupo colapsável, com as seções do perfil (?s=…). */
+function ProfileGroup() {
+  const loc = useLocation();
+  const onProfile = loc.pathname.startsWith('/app/perfil');
+  const [open, setOpen] = useState(onProfile);
+  useEffect(() => {
+    if (onProfile) setOpen(true);
+  }, [onProfile]);
+  const current = new URLSearchParams(loc.search).get('s') ?? 'dados';
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`flex w-full items-center gap-3 rounded-medium px-3 py-2.5 text-sm font-medium transition-colors ${
+          onProfile ? 'text-foreground' : 'text-text-muted hover:bg-content2 hover:text-foreground'
+        }`}
+      >
+        <IconUser size={20} />
+        <span className="flex-1 text-left">Meu perfil</span>
+        <LuChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-2">
+          {PROFILE_SUBS.map((sub) => {
+            const isActive = onProfile && current === sub.s;
+            return (
+              <Link
+                key={sub.s}
+                to={`/app/perfil?s=${sub.s}`}
+                className={`block rounded-medium px-3 py-2 text-sm transition-colors ${
+                  isActive ? 'bg-primary/15 font-medium text-primary' : 'text-text-muted hover:bg-content2 hover:text-foreground'
+                }`}
+              >
+                {sub.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

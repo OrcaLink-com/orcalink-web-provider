@@ -36,13 +36,25 @@ export function EuPage() {
       </div>
 
       <section>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Conta</h2>
+        <Card className="divide-y divide-border p-0">
+          <ListRow icon={<LuPencil size={18} />} title="Meu perfil" subtitle="Dados pessoais, empresa, endereço e senha" to="/app/perfil" />
+          <ListRow icon={<IconInbox size={18} />} title="Notificações" subtitle="Central de avisos" to="/app/inbox" />
+        </Card>
+      </section>
+
+      <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Meu negócio</h2>
         <Card className="divide-y divide-border p-0">
-          <ListRow icon={<LuPencil size={18} />} title="Meu perfil" subtitle="Dados, negócio, endereço e senha" to="/app/perfil" />
           <ListRow icon={<IconWallet size={18} />} title="Financeiro" subtitle="Recebimentos e repasses" to="/app/financeiro" />
-          <ListRow icon={<IconInbox size={18} />} title="Notificações" to="/app/inbox" />
-          <ListRow icon={<IconArea size={18} />} title="Área de atendimento" to="/app/area" />
-          <ListRow icon={<IconAgenda size={18} />} title="Disponibilidade & bloqueios" to="/app/agenda" />
+          <ListRow icon={<IconArea size={18} />} title="Área de atendimento" subtitle="Raio e localização" to="/app/area" />
+          <ListRow icon={<IconAgenda size={18} />} title="Disponibilidade & bloqueios" subtitle="Sua agenda" to="/app/agenda" />
+        </Card>
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Ajuda</h2>
+        <Card className="divide-y divide-border p-0">
           <ListRow
             icon={<LuDownload size={18} />}
             title="Instalar o app"
