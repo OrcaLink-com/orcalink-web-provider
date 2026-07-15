@@ -16,7 +16,6 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   useCategories,
   useProfile,
-  useProviderDashboard,
   useProviderProfile,
   useRequestPasswordOtp,
   useSetPassword,
@@ -33,7 +32,6 @@ import {
   Button,
   Card,
   Input,
-  RatingStars,
   Select,
   Spinner,
   Textarea,
@@ -116,7 +114,6 @@ function ProfileEditor({
 }) {
   const providerQ = useProviderProfile();
   const categoriesQ = useCategories();
-  const dashQ = useProviderDashboard();
   const updateMe = useUpdateMe();
   const updateBiz = useUpdateProviderProfile();
   const coverRef = useRef<HTMLInputElement>(null);
@@ -361,6 +358,17 @@ function ProfileEditor({
         return (
           <Card className="space-y-4 p-5">
             <SectionTitle icon={<LuUser size={16} />} title="Dados pessoais" />
+            <div className="flex items-center gap-3">
+              <AvatarUploader
+                value={avatarUrl}
+                name={name}
+                onChange={(u) => void saveAvatar(u)}
+              />
+              <div>
+                <p className="text-sm font-medium">Foto de perfil</p>
+                <p className="text-xs text-text-muted">Aparece para os clientes nas conversas.</p>
+              </div>
+            </div>
             <Input label="Nome" value={name} onChange={setName} />
             <div>
               <Input
@@ -391,9 +399,44 @@ function ProfileEditor({
           <Card className="space-y-5 p-5">
             <SectionTitle icon={<LuBriefcase size={16} />} title="Empresa" />
             <p className="-mt-3 text-xs text-text-muted">
-              Ajuda os clientes a conhecerem seu trabalho. A capa e a logo você
-              troca no topo.
+              Ajuda os clientes a conhecerem seu trabalho.
             </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="mb-1 text-sm font-medium">Logo</p>
+                <button
+                  type="button"
+                  onClick={() => logoRef.current?.click()}
+                  className="flex h-24 w-full items-center justify-center overflow-hidden rounded-medium border border-dashed border-border bg-content2/40 hover:bg-content2"
+                >
+                  {f.logoUrl ? (
+                    <img src={f.logoUrl} alt="" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-xs text-text-muted">
+                      <LuImagePlus size={16} /> Enviar logo
+                    </span>
+                  )}
+                </button>
+              </div>
+              <div>
+                <p className="mb-1 text-sm font-medium">Capa</p>
+                <button
+                  type="button"
+                  onClick={() => coverRef.current?.click()}
+                  className="flex h-24 w-full items-center justify-center overflow-hidden rounded-medium border border-dashed border-border bg-content2/40 hover:bg-content2"
+                >
+                  {f.coverUrl ? (
+                    <img src={f.coverUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-xs text-text-muted">
+                      <LuImagePlus size={16} /> Enviar capa
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+            <input ref={logoRef} type="file" accept="image/*" onChange={onLogo} className="hidden" />
+            <input ref={coverRef} type="file" accept="image/*" onChange={onCover} className="hidden" />
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Nome da empresa"
@@ -642,103 +685,6 @@ function ProfileEditor({
 
   return (
     <>
-      {/* Hero de identidade — só na seção Empresa */}
-      {eff === "empresa" && (
-      <Card className="overflow-hidden p-0">
-        <div className="relative h-28 w-full bg-gradient-to-br from-primary/25 to-content2 sm:h-36">
-          {f.coverUrl && (
-            <img
-              src={f.coverUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          )}
-          <button
-            type="button"
-            onClick={() => coverRef.current?.click()}
-            className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs text-white backdrop-blur hover:bg-black/70"
-          >
-            <LuImagePlus size={14} /> Alterar capa
-          </button>
-          <button
-            type="button"
-            onClick={() => logoRef.current?.click()}
-            aria-label="Alterar logo"
-            className="absolute -bottom-6 left-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-2 border-content1 bg-content2 shadow-pop"
-          >
-            {f.logoUrl ? (
-              <img
-                src={f.logoUrl}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <LuImagePlus size={18} className="text-text-muted" />
-            )}
-          </button>
-          <input
-            ref={coverRef}
-            type="file"
-            accept="image/*"
-            onChange={onCover}
-            className="hidden"
-          />
-          <input
-            ref={logoRef}
-            type="file"
-            accept="image/*"
-            onChange={onLogo}
-            className="hidden"
-          />
-        </div>
-        <div className="px-4 pb-4 pt-8">
-          <div className="flex items-start gap-3">
-            <AvatarUploader
-              value={avatarUrl}
-              name={name}
-              onChange={(u) => void saveAvatar(u)}
-            />
-            <div className="min-w-0 flex-1 pt-1">
-              <div className="flex items-center gap-1.5">
-                <p className="truncate text-lg font-bold">
-                  {name || "Seu nome"}
-                </p>
-                {(profile.emailVerified || profile.phoneVerified) && (
-                  <LuBadgeCheck size={18} className="shrink-0 text-primary" />
-                )}
-              </div>
-              {f.companyName && (
-                <p className="truncate text-sm text-text-muted">
-                  {f.companyName}
-                </p>
-              )}
-              {dashQ.data && (
-                <div className="mt-1">
-                  <RatingStars
-                    value={dashQ.data.ratingAvg}
-                    count={dashQ.data.ratingCount}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          {dashQ.data && (
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <Stat
-                label="Orçamentos"
-                value={String(dashQ.data.proposalsSent)}
-              />
-              <Stat label="Concluídos" value={String(dashQ.data.finished)} />
-              <Stat
-                label="Membro desde"
-                value={memberSince(profile.createdAt)}
-              />
-            </div>
-          )}
-        </div>
-      </Card>
-      )}
-
       <div className="mt-4">
         {/* Mobile: lista de seções. No desktop a navegação fica no menu lateral (Meu perfil). */}
         {active === null && (
@@ -995,28 +941,12 @@ function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-medium border border-border bg-content2/40 px-2 py-2.5 text-center">
-      <p className="truncate text-base font-bold leading-none">{value}</p>
-      <p className="mt-1 text-[11px] text-text-muted">{label}</p>
-    </div>
-  );
-}
-
 function VerifiedChip() {
   return (
     <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
       <LuBadgeCheck size={12} /> Verificado
     </span>
   );
-}
-
-function memberSince(iso: string): string {
-  const d = new Date(iso);
-  return d
-    .toLocaleDateString("pt-BR", { month: "short", year: "numeric" })
-    .replace(".", "");
 }
 
 function useAutoHide(active: boolean, hide: () => void) {
