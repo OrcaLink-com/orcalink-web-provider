@@ -158,6 +158,9 @@ function ProfileEditor({
     avgResponseMinutes: "",
     phone: "",
     document: "",
+    birthDate: "",
+    companyType: "",
+    income: "",
   });
   const set = (k: keyof typeof f) => (v: string) =>
     setF((s) => ({ ...s, [k]: v }));
@@ -192,6 +195,9 @@ function ProfileEditor({
         d.avgResponseMinutes != null ? String(d.avgResponseMinutes) : "",
       phone: d.phone ?? "",
       document: d.document ?? "",
+      birthDate: d.birthDate ?? "",
+      companyType: d.companyType ?? "",
+      income: d.incomeValueCents != null ? String(d.incomeValueCents / 100) : "",
     });
     setCategoryIds(d.categoryIds);
     setPortfolio(d.portfolio);
@@ -320,6 +326,11 @@ function ProfileEditor({
             f.document.trim() !== (providerQ.data?.document ?? "")
               ? f.document.trim()
               : undefined,
+          birthDate: f.birthDate || undefined,
+          companyType: f.companyType || undefined,
+          incomeValueCents: f.income
+            ? Math.round(Number(f.income.replace(",", ".")) * 100)
+            : undefined,
           categoryIds,
           portfolio,
           social: {
@@ -466,6 +477,46 @@ function ProfileEditor({
                 você.
               </p>
             </div>
+            {(() => {
+              const isCnpj = f.document.replace(/\D/g, "").length > 11;
+              return (
+                <div className="space-y-3 rounded-medium border border-border bg-content2/30 p-3">
+                  <p className="text-sm font-medium">Dados para recebimento</p>
+                  <p className="-mt-2 text-xs text-text-muted">
+                    Exigidos pelo nosso parceiro de pagamentos (Asaas) para
+                    liberar seus repasses. O endereço vem da aba Endereço.
+                    Visível somente para você.
+                  </p>
+                  <Input
+                    label="Faturamento / renda mensal (R$)"
+                    value={f.income}
+                    onChange={set("income")}
+                    placeholder="5000"
+                  />
+                  {isCnpj ? (
+                    <Select
+                      label="Tipo de empresa"
+                      value={f.companyType}
+                      onChange={set("companyType")}
+                      placeholder="Selecione"
+                      options={[
+                        { value: "MEI", label: "MEI" },
+                        { value: "LIMITED", label: "Ltda / Sociedade Limitada" },
+                        { value: "INDIVIDUAL", label: "Empresário Individual" },
+                        { value: "ASSOCIATION", label: "Associação" },
+                      ]}
+                    />
+                  ) : (
+                    <Input
+                      label="Data de nascimento"
+                      type="date"
+                      value={f.birthDate}
+                      onChange={set("birthDate")}
+                    />
+                  )}
+                </div>
+              );
+            })()}
             <Textarea
               label="Descrição da empresa"
               value={f.bio}

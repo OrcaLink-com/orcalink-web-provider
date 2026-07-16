@@ -188,6 +188,9 @@ export interface ProviderProfile {
   avgResponseMinutes: number | null;
   phone: string | null;
   document: string | null; // CPF/CNPJ (privado — só o próprio prestador)
+  birthDate: string | null; // KYC: data de nascimento (YYYY-MM-DD)
+  companyType: string | null; // KYC: tipo de empresa (MEI|LIMITED|INDIVIDUAL|ASSOCIATION)
+  incomeValueCents: number | null; // KYC: faturamento/renda mensal (centavos)
   categoryIds: string[];
   portfolio: PortfolioItem[];
   social: ProviderSocial;
@@ -219,6 +222,9 @@ export interface UpdateProviderProfileInput {
   avgResponseMinutes?: number;
   phone?: string;
   document?: string;
+  birthDate?: string; // YYYY-MM-DD
+  companyType?: string; // MEI|LIMITED|INDIVIDUAL|ASSOCIATION
+  incomeValueCents?: number;
   categoryIds?: string[];
   portfolio?: PortfolioItem[];
   social?: ProviderSocial;
