@@ -98,6 +98,7 @@ export interface Me {
   phoneVerified: boolean;
   createdAt: string;
   hasPassword: boolean;
+  hasGoogle: boolean;
   providerStatus: ProviderStatus | null;
   termsVersion: string;
   termsAccepted: boolean;

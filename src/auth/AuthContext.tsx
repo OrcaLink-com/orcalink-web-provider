@@ -17,6 +17,8 @@ interface AuthContextValue {
   requestOtp: (channel: OtpChannel, destination: string) => Promise<{ devCode?: string }>;
   verifyOtp: (channel: OtpChannel, destination: string, code: string) => Promise<void>;
   acceptInvite: (input: AcceptInviteInput) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
+  loginWithPassword: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -56,6 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   }, []);
 
+  const loginWithGoogle = useCallback(async (idToken: string) => {
+    setUser(await api.loginWithGoogle(idToken));
+  }, []);
+
+  const loginWithPassword = useCallback(async (email: string, password: string) => {
+    setUser(await api.loginWithPassword(email, password));
+  }, []);
+
   const logout = useCallback(async () => {
     await disablePush();
     await api.logout();
@@ -63,8 +73,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: Boolean(user), requestOtp, verifyOtp, acceptInvite, logout }),
-    [user, requestOtp, verifyOtp, acceptInvite, logout],
+    () => ({
+      user,
+      isAuthenticated: Boolean(user),
+      requestOtp,
+      verifyOtp,
+      acceptInvite,
+      loginWithGoogle,
+      loginWithPassword,
+      logout,
+    }),
+    [user, requestOtp, verifyOtp, acceptInvite, loginWithGoogle, loginWithPassword, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
