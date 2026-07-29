@@ -59,12 +59,28 @@ export function ProposalCard({ payload, onAccept, onReject, onCompare, onViewDoc
     meta.push({ icon: <LuClock size={15} />, label: 'Prazo', value: `${payload.leadTimeDays} dia(s)` });
   if (!isEstimate && payload.warrantyDays != null)
     meta.push({ icon: <LuShieldCheck size={15} />, label: 'Garantia', value: `${payload.warrantyDays} dia(s)` });
-  if (!isEstimate && payload.paymentMethods && payload.paymentMethods.length > 0)
+  const phased = !isEstimate && payload.paymentPlan && payload.paymentPlan.length > 0;
+  if (phased) {
+    meta.push({
+      icon: <LuLayers size={15} />,
+      label: `Pagamento em ${payload.paymentPlan!.length} fases — por etapa`,
+      value: '',
+    });
+    payload.paymentPlan!.forEach((ph) =>
+      meta.push({
+        icon: <LuLayers size={13} />,
+        indent: true,
+        label: ph.title,
+        value: formatCents(ph.amountCents),
+      }),
+    );
+  } else if (!isEstimate && payload.paymentMethods && payload.paymentMethods.length > 0) {
     meta.push({
       icon: <LuCreditCard size={15} />,
       label: 'Pagamento',
       value: payload.paymentMethods.map((m) => METHOD_LABEL[m] ?? m).join(', '),
     });
+  }
   if (payload.notes)
     meta.push({ icon: <LuStickyNote size={15} />, label: 'Obs.', value: payload.notes });
 
@@ -90,40 +106,40 @@ export function ProposalCard({ payload, onAccept, onReject, onCompare, onViewDoc
       mine={mine}
       actions={
         showViewDoc || showDecision ? (
-          <>
-            {showViewDoc ? (
-              <button
-                type="button"
-                onClick={onViewDocument}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-content2 px-4 text-sm font-semibold text-foreground transition-colors hover:bg-content1"
+        <>
+          {showViewDoc ? (
+            <button
+              type="button"
+              onClick={onViewDocument}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-content2 px-4 text-sm font-semibold text-foreground transition-colors hover:bg-content1"
+            >
+              <LuFileText size={16} /> Ver orçamento completo
+            </button>
+          ) : null}
+          {showDecision ? (
+            <>
+              <CardButton
+                accent={isEstimate ? 'blue' : 'green'}
+                icon={<LuCheck size={17} />}
+                onPress={accept}
+                disabled={busy}
+                successLabel="Aceita!"
               >
-                <LuFileText size={16} /> Ver orçamento completo
-              </button>
-            ) : null}
-            {showDecision ? (
-              <>
-                <CardButton
-                  accent={isEstimate ? 'blue' : 'green'}
-                  icon={<LuCheck size={17} />}
-                  onPress={accept}
-                  disabled={busy}
-                  successLabel="Aceita!"
-                >
-                  {isEstimate ? 'Aceitar estimativa' : 'Aceitar e contratar'}
+                {isEstimate ? 'Aceitar estimativa' : 'Aceitar e contratar'}
+              </CardButton>
+              <div className={payload.compareCount ? 'grid grid-cols-2 gap-2' : ''}>
+                <CardButton variant="secondary" icon={<LuX size={16} />} onPress={reject} disabled={busy}>
+                  Recusar
                 </CardButton>
-                <div className={payload.compareCount ? 'grid grid-cols-2 gap-2' : ''}>
-                  <CardButton variant="secondary" icon={<LuX size={16} />} onPress={reject} disabled={busy}>
-                    Recusar
+                {payload.compareCount ? (
+                  <CardButton variant="secondary" icon={<LuLayers size={16} />} onPress={onCompare} disabled={busy}>
+                    Comparar ({payload.compareCount})
                   </CardButton>
-                  {payload.compareCount ? (
-                    <CardButton variant="secondary" icon={<LuLayers size={16} />} onPress={onCompare} disabled={busy}>
-                      Comparar ({payload.compareCount})
-                    </CardButton>
-                  ) : null}
-                </div>
-              </>
-            ) : null}
-          </>
+                ) : null}
+              </div>
+            </>
+          ) : null}
+        </>
         ) : undefined
       }
     />

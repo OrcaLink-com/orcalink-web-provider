@@ -100,13 +100,17 @@ function OtpForm() {
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'request' | 'verify'>('request');
   const [devCode, setDevCode] = useState<string | null>(null);
+  // Fluxo de senha em aparelho novo (2FA): pede um código antes de entrar.
+  const [pwNeedsCode, setPwNeedsCode] = useState(false);
+  const [pwCode, setPwCode] = useState('');
+  const [trust, setTrust] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Limpa o erro assim que o usuário edita os campos.
   useEffect(() => {
     setError(null);
-  }, [email, code, password]);
+  }, [email, code, password, pwCode]);
 
   async function run(fn: () => Promise<void>) {
     setError(null);
@@ -137,7 +141,17 @@ function OtpForm() {
 
   const onPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    void run(() => loginWithPassword(email.trim(), password));
+    void run(async () => {
+      const res = await loginWithPassword(email.trim(), password, {
+        code: pwNeedsCode ? pwCode.trim() : undefined,
+        trustDevice: pwNeedsCode ? trust : undefined,
+      });
+      if (res.status === 'code_required') {
+        setPwNeedsCode(true);
+        setDevCode(res.devCode ?? null);
+        if (res.devCode) setPwCode(res.devCode);
+      }
+    });
   };
 
   return (
@@ -147,7 +161,7 @@ function OtpForm() {
       {googleEnabled && (
         <>
           <GoogleSignInButton
-            onCredential={(idToken) => run(() => loginWithGoogle(idToken))}
+            onCode={(code) => run(() => loginWithGoogle(code))}
             onError={setError}
           />
           <Divider />
@@ -220,9 +234,32 @@ function OtpForm() {
             placeholder="Sua senha"
             isRequired
           />
+          {pwNeedsCode && (
+            <>
+              <p className="text-sm text-text-muted">
+                Primeiro acesso neste aparelho: confirme com o código enviado a{' '}
+                <strong className="text-foreground">{email}</strong>.
+              </p>
+              {devCode && (
+                <p className="rounded-medium bg-content2 px-3 py-2 text-xs text-text-muted">
+                  Modo dev — código: <strong>{devCode}</strong>
+                </p>
+              )}
+              <Input label="Código de 6 dígitos" value={pwCode} onChange={setPwCode} placeholder="000000" />
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-text-muted">
+                <input
+                  type="checkbox"
+                  checked={trust}
+                  onChange={(e) => setTrust(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                Confiar neste dispositivo por 60 dias (não pedir código de novo)
+              </label>
+            </>
+          )}
           {error && <p className="text-sm text-danger">{error}</p>}
           <Button type="submit" full loading={loading}>
-            Entrar
+            {pwNeedsCode ? 'Confirmar e entrar' : 'Entrar'}
           </Button>
           <button
             type="button"

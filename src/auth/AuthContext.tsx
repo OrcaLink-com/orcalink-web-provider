@@ -18,7 +18,11 @@ interface AuthContextValue {
   verifyOtp: (channel: OtpChannel, destination: string, code: string) => Promise<void>;
   acceptInvite: (input: AcceptInviteInput) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
-  loginWithPassword: (email: string, password: string) => Promise<void>;
+  loginWithPassword: (
+    email: string,
+    password: string,
+    opts?: { code?: string; trustDevice?: boolean },
+  ) => Promise<{ status: 'code_required'; devCode?: string } | { status: 'ok' }>;
   logout: () => Promise<void>;
 }
 
@@ -62,9 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(await api.loginWithGoogle(idToken));
   }, []);
 
-  const loginWithPassword = useCallback(async (email: string, password: string) => {
-    setUser(await api.loginWithPassword(email, password));
-  }, []);
+  const loginWithPassword = useCallback(
+    async (email: string, password: string, opts?: { code?: string; trustDevice?: boolean }) => {
+      const res = await api.loginWithPassword(email, password, opts);
+      if (res.status === 'ok') setUser(res.user);
+      return res.status === 'ok' ? { status: 'ok' as const } : res;
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     await disablePush();

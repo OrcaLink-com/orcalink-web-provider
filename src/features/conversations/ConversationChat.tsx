@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LuCalendarClock, LuCalendarPlus, LuCircleCheck, LuFilePlus, LuFileText, LuPlay } from 'react-icons/lu';
+import { LuBanknote, LuCalendarClock, LuCalendarPlus, LuCheck, LuCircleCheck, LuCreditCard, LuFilePlus, LuFileText, LuLayers, LuPlay, LuPlus, LuQrCode, LuTrash2 } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
@@ -11,8 +11,10 @@ import {
   useRescheduleVisit,
   useMessages,
   useMarkServiceDone,
+  useMilestones,
   useMyConversations,
   usePricing,
+  useRequestMilestone,
   useProfile,
   useRequestVisit,
   useSendMessage,
@@ -82,6 +84,21 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const selected = conversation?.latestProposal?.status === 'APPROVED';
   const pricingQ = usePricing(conversation?.quoteId, selected);
   const net = pricingQ.data?.providerNetCents;
+  const isPhased = pricingQ.data?.isPhased ?? false;
+
+  // Fases (orçamento faseado): qual solicitar / o que aguardar.
+  const milestonesQ = useMilestones(conversation?.quoteId, selected && isPhased);
+  const requestMilestone = useRequestMilestone(conversation?.quoteId);
+  const milestones = milestonesQ.data ?? [];
+  // Entrada (order 0) já nasce disponível; as demais, quando solicitadas.
+  const mAwaitingPay = milestones.find((m) => m.status === 'PENDING' && (m.order === 0 || !!m.requestedAt)); // aguarda o cliente pagar
+  const mPaid = milestones.find((m) => m.status === 'PAID'); // paga, aguarda o cliente confirmar entrega
+  const mToRequest = (() => {
+    const cand = milestones.find((m) => m.status === 'PENDING' && !m.requestedAt);
+    if (!cand) return undefined;
+    const prev = milestones.find((m) => m.order === cand.order - 1);
+    return prev?.status === 'RELEASED' ? cand : undefined; // sequencial
+  })();
 
   const startExec = useStartExecution(conversation?.quoteId ?? '');
   const markDone = useMarkServiceDone(conversation?.quoteId);
@@ -112,8 +129,34 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const messages = useMemo<ChatMessage[]>(() => {
     if (!messagesQ.data || !conversation || !peer) return [];
     const me: ChatParticipant = { id: user?.id ?? 'me', name: 'Você', role: 'provider', avatarUrl: myProfile.data?.avatarUrl ?? undefined };
-    return messagesToChat(messagesQ.data, { me, peer });
-  }, [messagesQ.data, conversation, peer, user?.id, myProfile.data?.avatarUrl]);
+    const list = messagesToChat(messagesQ.data, { me, peer });
+    // FASEADO: divisórias de início (pago, em custódia) e fim (liberado) de cada fase.
+    if (isPhased) {
+      const system: ChatParticipant = { id: 'system', name: 'Sistema', role: 'system' };
+      for (const m of milestones) {
+        if (m.paidAt && (m.status === 'PAID' || m.status === 'RELEASED')) {
+          list.push({
+            id: `ms-start-${m.id}`,
+            type: 'system',
+            sender: system,
+            createdAt: m.paidAt,
+            payload: { text: `Fase "${m.title}" iniciada · ${formatBRL(m.amountCents)} em custódia`, icon: 'payment' },
+          });
+        }
+        if (m.releasedAt && m.status === 'RELEASED') {
+          list.push({
+            id: `ms-end-${m.id}`,
+            type: 'system',
+            sender: system,
+            createdAt: m.releasedAt,
+            payload: { text: `Fim da fase "${m.title}" · repasse liberado`, icon: 'check' },
+          });
+        }
+      }
+      list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    }
+    return list;
+  }, [messagesQ.data, conversation, peer, user?.id, myProfile.data?.avatarUrl, isPhased, milestones]);
 
   const handlers: ChatActionHandlers = {
     onSendMessage: async (t) => {
@@ -182,7 +225,50 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
 
   // Card de ação premium fixado acima do input (bottom sheet) — próxima ação do prestador.
   let nextAction: ReactNode;
-  if (isActive && pane === 'none') {
+  if (isActive && pane === 'none' && isPhased) {
+    // Fluxo faseado: solicitar a próxima fase / aguardar pagamento ou entrega.
+    if (mAwaitingPay) {
+      nextAction = (
+        <AwaitingCard
+          title={
+            mAwaitingPay.order === 0
+              ? `Aguardando o pagamento da entrada · "${mAwaitingPay.title}"`
+              : `Aguardando o pagamento da fase "${mAwaitingPay.title}"`
+          }
+          description={
+            mAwaitingPay.order === 0
+              ? 'Assim que o cliente pagar a entrada, o valor fica em custódia e você pode iniciar o trabalho.'
+              : 'Você solicitou esta fase. Assim que o cliente pagar, o valor fica em custódia e você pode executá-la.'
+          }
+        />
+      );
+    } else if (mPaid) {
+      nextAction = (
+        <AwaitingCard
+          title={`Aguardando o cliente confirmar a entrega da fase "${mPaid.title}"`}
+          description="A fase foi paga. Quando o cliente confirmar a entrega, o repasse é liberado e você pode solicitar a próxima."
+        />
+      );
+    } else if (mToRequest) {
+      nextAction = (
+        <NextActionCard
+          tone="amber"
+          icon={<LuBanknote size={20} />}
+          title={`Solicitar pagamento da fase "${mToRequest.title}"`}
+          description="A fase anterior foi concluída. Solicite o pagamento desta fase para continuar o trabalho."
+          ctaLabel="Solicitar pagamento da fase"
+          onCta={async () => {
+            await requestMilestone.mutateAsync(mToRequest.id);
+          }}
+          confirm={{
+            description: `Isso envia ao cliente a cobrança da fase "${mToRequest.title}". Ele paga e o valor fica em custódia até a entrega.`,
+            confirmLabel: 'Sim, solicitar',
+          }}
+        />
+      );
+    }
+  } else if (isActive && pane === 'none' && !pricingQ.isLoading) {
+    // Só decide o fluxo único depois de saber se é faseado (evita piscar o estado errado).
     if (paid && executionPending) {
       // Já enviou a data de execução — aguarda o cliente confirmar.
       nextAction = (
@@ -571,20 +657,43 @@ function ProposalForm({
   const [execConditions, setExecConditions] = useState(t?.executionConditions ?? '');
   const [techNotes, setTechNotes] = useState(t?.technicalNotes ?? '');
   const [warrantiesText, setWarrantiesText] = useState(t?.warrantiesText ?? '');
+  // Plano de pagamento faseado (só na proposta final). Prefill a partir da proposta.
+  const [phased, setPhased] = useState<boolean>(!!initial?.paymentPlan?.length);
+  const [phases, setPhases] = useState<{ title: string; valueStr: string }[]>(() =>
+    initial?.paymentPlan?.length
+      ? initial.paymentPlan.map((p) => ({ title: p.title, valueStr: String(p.amountCents / 100) }))
+      : [
+          { title: '', valueStr: '' },
+          { title: '', valueStr: '' },
+        ],
+  );
+  const setPhase = (i: number, patch: Partial<{ title: string; valueStr: string }>) =>
+    setPhases((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   const [error, setError] = useState<string | null>(null);
 
   // Limpa o erro assim que o usuário edita o formulário (valor, itens, descrição, modo).
   useEffect(() => {
     setError(null);
-  }, [amount, amountMin, amountMax, desc, items, mode, proposalType]);
+  }, [amount, amountMin, amountMax, desc, items, mode, proposalType, phased, phases]);
 
   const isPre = proposalType === 'PRE';
   const proTotal = items.reduce((s, r) => s + rowSubtotal(r), 0);
+  // Total efetivo da proposta (PRO = soma dos itens; SIMPLE = valor digitado) e
+  // soma das fases — para validar o plano de pagamento ao vivo.
+  const currentTotalCents = mode === 'PRO' ? proTotal : parseCents(amount) ?? 0;
+  const phaseSumCents = phases.reduce((s, p) => s + (parseCents(p.valueStr) ?? 0), 0);
 
   function parseCents(v: string): number | null {
-    const n = parseFloat(v.replace(',', '.'));
+    // Aceita "1500", "1.500,00" e "1500.00" (formato BR e simples).
+    const clean = v.trim().replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(clean);
     if (!Number.isFinite(n) || n < 1) return null;
     return Math.round(n * 100);
+  }
+  // Ao sair do campo, formata o valor da fase para "1.500,00".
+  function formatPhaseValue(i: number) {
+    const c = parseCents(phases[i].valueStr);
+    if (c != null) setPhase(i, { valueStr: (c / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) });
   }
   function updateItem(i: number, patch: Partial<ItemRow>) {
     setItems((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
@@ -648,6 +757,24 @@ function ProposalForm({
       return;
     }
 
+    // Plano de pagamento faseado (só na proposta final). A soma tem que bater com o total.
+    let paymentPlanPayload: import('../../lib/types').ProposalPhase[] | undefined;
+    if (!isPre && phased) {
+      const built = phases
+        .map((p) => ({ title: p.title.trim(), providerAmountCents: parseCents(p.valueStr) ?? 0 }))
+        .filter((p) => p.title && p.providerAmountCents >= 100);
+      if (built.length < 2) {
+        setError('Adicione ao menos 2 fases, cada uma com nome e valor (mín. R$ 1,00).');
+        return;
+      }
+      const sum = built.reduce((s, p) => s + p.providerAmountCents, 0);
+      if (sum !== cents) {
+        setError(`A soma das fases (${formatBRL(sum)}) precisa ser igual ao total (${formatBRL(cents)}).`);
+        return;
+      }
+      paymentPlanPayload = built;
+    }
+
     try {
       await createProposal.mutateAsync({
         quoteId,
@@ -664,6 +791,7 @@ function ProposalForm({
         requestsVisit: isPre ? requestsVisit : undefined,
         items: itemsPayload,
         technical: technicalPayload,
+        paymentPlan: paymentPlanPayload,
       });
       onClose();
     } catch (err) {
@@ -671,53 +799,47 @@ function ProposalForm({
     }
   }
 
-  const input = 'w-full rounded-md border border-border bg-background px-3 py-2 text-sm';
+  const input =
+    'w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-text-muted/70 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25';
 
   return (
-    <form onSubmit={onSubmit} className="max-h-[70vh] space-y-2 overflow-y-auto border-t border-border bg-content1 p-3">
+    <form onSubmit={onSubmit} className="max-h-[70vh] space-y-3 overflow-y-auto border-t border-border bg-content1 p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-primary">{initial ? 'Proposta final a partir da estimativa' : 'Enviar proposta'}</p>
-        <button type="button" onClick={onClose} className="text-xs text-text-muted hover:text-foreground">
+        <p className="text-sm font-semibold text-foreground">{initial ? 'Proposta final a partir da estimativa' : 'Enviar proposta'}</p>
+        <button type="button" onClick={onClose} className="text-xs font-medium text-text-muted hover:text-foreground">
           Fechar
         </button>
       </div>
 
-      {/* PRE × FINAL */}
-      <div className="flex gap-2 text-sm">
-        <button
-          type="button"
-          onClick={() => setProposalType('PRE')}
-          className={`flex-1 rounded-md border px-3 py-1.5 ${proposalType === 'PRE' ? 'border-primary bg-card font-medium text-primary' : 'border-border'}`}
-        >
-          Estimativa
-        </button>
-        <button
-          type="button"
-          onClick={() => canSendFinal && setProposalType('FINAL')}
-          disabled={!canSendFinal}
-          title={canSendFinal ? undefined : 'Disponível após a visita técnica'}
-          className={`flex-1 rounded-md border px-3 py-1.5 disabled:cursor-not-allowed disabled:opacity-50 ${proposalType === 'FINAL' ? 'border-primary bg-card font-medium text-primary' : 'border-border'}`}
-        >
-          Proposta final
-        </button>
-      </div>
-
-      {/* Simples × Profissional */}
-      <div className="flex gap-2 text-sm">
-        <button
-          type="button"
-          onClick={() => setMode('SIMPLE')}
-          className={`flex-1 rounded-md border px-3 py-1.5 ${mode === 'SIMPLE' ? 'border-primary bg-card font-medium text-primary' : 'border-border'}`}
-        >
-          Simples
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('PRO')}
-          className={`flex-1 rounded-md border px-3 py-1.5 ${mode === 'PRO' ? 'border-primary bg-card font-medium text-primary' : 'border-border'}`}
-        >
-          Profissional
-        </button>
+      {/* Tipo de proposta + nível de detalhe (segmented) */}
+      <div className="grid gap-3 pt-1 sm:grid-cols-2">
+        <div>
+          <FieldLabel>Tipo</FieldLabel>
+          <Segmented
+            value={proposalType}
+            onChange={(v) => v === 'FINAL' ? canSendFinal && setProposalType('FINAL') : setProposalType('PRE')}
+            options={[
+              { value: 'PRE', label: 'Estimativa' },
+              {
+                value: 'FINAL',
+                label: 'Proposta final',
+                disabled: !canSendFinal,
+                title: canSendFinal ? undefined : 'Disponível após a visita técnica',
+              },
+            ]}
+          />
+        </div>
+        <div>
+          <FieldLabel>Detalhamento</FieldLabel>
+          <Segmented
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'SIMPLE', label: 'Simples' },
+              { value: 'PRO', label: 'Profissional' },
+            ]}
+          />
+        </div>
       </div>
 
       {requiresVisit && !canSendFinal && (
@@ -734,21 +856,25 @@ function ProposalForm({
 
       {/* Valor (modo simples) */}
       {mode === 'SIMPLE' && (
-        <>
-          <input
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder={isPre ? 'Valor estimado (R$)' : 'Valor final (R$)'}
-            className={input}
-          />
+        <div>
+          <FieldLabel>{isPre ? 'Valor estimado' : 'Valor final'}</FieldLabel>
+          <div className="flex items-center rounded-lg border border-border bg-background px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25">
+            <span className="text-sm font-medium text-text-muted">R$</span>
+            <input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0,00"
+              className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-sm text-foreground outline-none placeholder:text-text-muted/70"
+            />
+          </div>
           {isPre && (
-            <div className="flex gap-2">
+            <div className="mt-2 flex gap-2">
               <input inputMode="decimal" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} placeholder="Mínimo (opcional)" className={`${input} w-1/2`} />
               <input inputMode="decimal" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} placeholder="Máximo (opcional)" className={`${input} w-1/2`} />
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Itens (modo profissional) */}
@@ -833,17 +959,26 @@ function ProposalForm({
         </div>
       )}
 
-      <textarea
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
-        rows={2}
-        placeholder={isPre ? 'Descrição (o que será feito)' : 'Descrição / escopo do serviço'}
-        className={input}
-      />
+      <div>
+        <FieldLabel>Descrição / escopo</FieldLabel>
+        <textarea
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          rows={2}
+          placeholder={isPre ? 'O que será feito, materiais, etapas…' : 'Detalhe o escopo do serviço'}
+          className={input}
+        />
+      </div>
       <div className="flex gap-2">
-        <input inputMode="numeric" value={leadDays} onChange={(e) => setLeadDays(e.target.value)} placeholder={isPre ? 'Prazo aprox. (dias)' : 'Prazo (dias)'} className={`${input} w-1/2`} />
+        <div className="w-1/2">
+          <FieldLabel>{isPre ? 'Prazo aprox. (dias)' : 'Prazo (dias)'}</FieldLabel>
+          <input inputMode="numeric" value={leadDays} onChange={(e) => setLeadDays(e.target.value)} placeholder="Ex.: 15" className={input} />
+        </div>
         {!isPre && (
-          <input inputMode="numeric" value={warrantyDays} onChange={(e) => setWarrantyDays(e.target.value)} placeholder="Garantia (dias)" className={`${input} w-1/2`} />
+          <div className="w-1/2">
+            <FieldLabel>Garantia (dias)</FieldLabel>
+            <input inputMode="numeric" value={warrantyDays} onChange={(e) => setWarrantyDays(e.target.value)} placeholder="Ex.: 90" className={input} />
+          </div>
         )}
       </div>
 
@@ -862,20 +997,235 @@ function ProposalForm({
       )}
 
       {!isPre && (
-        <div className="flex gap-3 text-sm">
-          <label className="flex items-center gap-1">
-            <input type="checkbox" checked={acceptsPix} onChange={(e) => setAcceptsPix(e.target.checked)} /> PIX
-          </label>
-          <label className="flex items-center gap-1">
-            <input type="checkbox" checked={acceptsCard} onChange={(e) => setAcceptsCard(e.target.checked)} /> Cartão
-          </label>
+        <div>
+          <FieldLabel>Formas de pagamento aceitas</FieldLabel>
+          <div className="flex gap-2">
+            <PayChip active={acceptsPix} onClick={() => setAcceptsPix(!acceptsPix)} icon={<LuQrCode size={15} />}>
+              PIX
+            </PayChip>
+            <PayChip active={acceptsCard} onClick={() => setAcceptsCard(!acceptsCard)} icon={<LuCreditCard size={15} />}>
+              Cartão
+            </PayChip>
+          </div>
         </div>
       )}
-      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Observações (opcional)" className={input} />
-      {error && <p className="text-xs text-danger">{error}</p>}
-      <button type="submit" disabled={createProposal.isPending} className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+
+      {/* Plano de pagamento faseado (só na proposta final) */}
+      {!isPre && (
+        <div className="rounded-lg border border-border">
+          <div className="flex items-center justify-between gap-3 p-3">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <LuLayers size={16} className={phased ? 'text-primary' : 'text-text-muted'} />
+              <span>
+                Cobrar em fases
+                <span className="mt-0.5 block text-xs font-normal text-text-muted">Cliente paga por etapa, com custódia</span>
+              </span>
+            </span>
+            <Switch checked={phased} onChange={setPhased} />
+          </div>
+
+          {phased && (
+            <div className="space-y-3 border-t border-border p-3">
+              <p className="text-xs leading-relaxed text-text-muted">
+                O cliente paga cada fase quando ela começa; o valor fica em custódia e é liberado
+                quando ele confirma a entrega dela.
+              </p>
+
+              <div className="space-y-2">
+                {phases.map((p, i) => {
+                  const cents = parseCents(p.valueStr);
+                  return (
+                    <div key={i} className="rounded-lg border border-border bg-background p-2.5">
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <input
+                          value={p.title}
+                          onChange={(e) => setPhase(i, { title: e.target.value })}
+                          placeholder="Nome da fase (ex.: Material, Estrutura…)"
+                          className="min-w-0 flex-1 rounded-md border border-border bg-card px-2.5 py-2 text-sm"
+                        />
+                        {phases.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setPhases((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-card hover:text-danger"
+                            aria-label={`Remover fase ${i + 1}`}
+                          >
+                            <LuTrash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 rounded-md border border-border bg-card px-2.5">
+                        <span className="text-sm font-medium text-text-muted">R$</span>
+                        <input
+                          inputMode="decimal"
+                          value={p.valueStr}
+                          onChange={(e) => setPhase(i, { valueStr: e.target.value })}
+                          onBlur={() => formatPhaseValue(i)}
+                          placeholder="0,00"
+                          className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none"
+                        />
+                        {cents != null && (
+                          <span className="text-xs text-text-muted">{formatBRL(cents)}</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPhases((prev) => [...prev, { title: '', valueStr: '' }])}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-xs font-medium text-primary hover:bg-card"
+              >
+                <LuPlus size={14} /> Adicionar fase
+              </button>
+
+              {/* Barra de conferência da soma */}
+              <div
+                className={`flex items-center justify-between rounded-md px-3 py-2 text-sm ${
+                  phaseSumCents === currentTotalCents && currentTotalCents > 0
+                    ? 'bg-success/10 text-success'
+                    : 'bg-danger/10 text-danger'
+                }`}
+              >
+                <span className="font-medium">Soma das fases</span>
+                <span className="font-bold">
+                  {formatBRL(phaseSumCents)}
+                  <span className="font-normal opacity-70"> / {formatBRL(currentTotalCents)}</span>
+                </span>
+              </div>
+              {phaseSumCents !== currentTotalCents && currentTotalCents > 0 && (
+                <p className="text-xs text-danger">
+                  {phaseSumCents > currentTotalCents
+                    ? `Passou ${formatBRL(phaseSumCents - currentTotalCents)} do total.`
+                    : `Faltam ${formatBRL(currentTotalCents - phaseSumCents)} para o total.`}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div>
+        <FieldLabel>Observações (opcional)</FieldLabel>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Algo que o cliente deva saber" className={input} />
+      </div>
+      {error && (
+        <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>
+      )}
+      <button
+        type="submit"
+        disabled={createProposal.isPending}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-50"
+      >
+        <LuFilePlus size={16} />
         {createProposal.isPending ? 'Enviando…' : isPre ? 'Enviar estimativa' : 'Enviar proposta final'}
       </button>
     </form>
+  );
+}
+
+/* ───────── Controles do formulário (leves, sem HeroUI) ───────── */
+
+/** Rótulo curto de campo. */
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="mb-1.5 block text-xs font-medium text-text-muted">{children}</span>;
+}
+
+interface SegOption<T extends string> {
+  value: T;
+  label: string;
+  disabled?: boolean;
+  title?: string;
+}
+
+/** Controle segmentado (trilho único com pílula ativa deslizante). */
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: SegOption<T>[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex rounded-xl bg-background p-1">
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            disabled={o.disabled}
+            title={o.title}
+            onClick={() => !o.disabled && onChange(o.value)}
+            className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+              active
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-text-muted hover:text-foreground'
+            }`}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Chip selecionável (toggle) com ícone — usado nas formas de pagamento. */
+function PayChip({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+        active
+          ? 'border-primary bg-primary/10 text-primary'
+          : 'border-border text-text-muted hover:border-primary/40 hover:text-foreground'
+      }`}
+    >
+      <span className="flex h-4 w-4 items-center justify-center">
+        {active ? <LuCheck size={15} /> : icon}
+      </span>
+      {children}
+    </button>
+  );
+}
+
+/** Interruptor on/off. */
+function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        checked ? 'bg-primary' : 'bg-content2'
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-5' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
   );
 }

@@ -47,6 +47,18 @@ export interface CreateProposalInput {
   format?: 'SIMPLE' | 'PRO';
   items?: ProposalItem[];
   technical?: ProposalTechnical;
+  /** FINAL: plano de pagamento faseado (valores do prestador; soma == amountCents). */
+  paymentPlan?: ProposalPhase[];
+}
+/** Fase do plano de pagamento (entrada — valor do prestador). */
+export interface ProposalPhase {
+  title: string;
+  providerAmountCents: number;
+}
+/** Fase do plano (saída — valor já na visão do leitor). */
+export interface ProposalPhaseView {
+  title: string;
+  amountCents: number;
 }
 export type ProposalType = 'PRE' | 'FINAL';
 export type ConversationStatus = 'ACTIVE' | 'BLOCKED' | 'CLOSED';
@@ -78,6 +90,17 @@ export interface TokenResponse {
   refreshToken: string;
   expiresIn: number;
   user: AuthUser;
+}
+
+/** Resposta do login por senha (2FA por dispositivo): precisa de código OU autenticado. */
+export interface PasswordLoginResult {
+  status: 'ok' | 'code_required';
+  devCode?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  user?: AuthUser;
+  deviceToken?: string;
 }
 
 export interface Me {
@@ -374,6 +397,7 @@ export interface Proposal {
   format?: 'SIMPLE' | 'PRO';
   items?: ProposalItem[];
   technical?: ProposalTechnical | null;
+  paymentPlan?: ProposalPhaseView[];
   status: ProposalStatus;
   createdAt: string;
 }
@@ -410,7 +434,22 @@ export interface PricingView {
   quoteStatus: QuoteStatus;
   paymentStatus: string | null;
   mode: string;
+  isPhased?: boolean;
   providerNetCents?: number;
+}
+
+/** Fase de pagamento (milestone) na visão do prestador. */
+export interface Milestone {
+  id: string;
+  order: number;
+  title: string;
+  amountCents: number; // líquido do prestador nesta fase
+  status: 'PENDING' | 'AUTHORIZED' | 'PAID' | 'RELEASED' | 'REFUNDED' | 'FAILED' | 'CANCELED';
+  isNext: boolean;
+  isPayable: boolean;
+  requestedAt?: string | null;
+  paidAt?: string | null;
+  releasedAt?: string | null;
 }
 
 export type VisitType = 'IN_LOCO' | 'EXECUTION';

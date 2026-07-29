@@ -8,7 +8,9 @@ import type {
   Me,
   PendingLegal,
   Message,
+  Milestone,
   OtpChannel,
+  PasswordLoginResult,
   PricingView,
   Proposal,
   ProviderDashboard,
@@ -38,6 +40,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const ACCESS_KEY = 'olp_access';
 const REFRESH_KEY = 'olp_refresh';
 const USER_KEY = 'olp_user';
+const DEVICE_KEY = 'olp_device_trust'; // token de dispositivo confiável (dispensa 2FA na senha)
 
 let onAuthLost: (() => void) | null = null;
 export function setAuthLostHandler(fn: (() => void) | null): void {
@@ -150,21 +153,35 @@ export const api = {
     storeSession(res);
     return res.user;
   },
-  /** Login social: troca o ID token do Google por uma sessão (nasce PRESTADOR). */
-  async loginWithGoogle(idToken: string) {
+  /** Login social: troca o código do Google (fluxo OAuth) por sessão (nasce PRESTADOR). */
+  async loginWithGoogle(code: string) {
     const res = await request<TokenResponse>(
       '/auth/google',
-      jsonBody({ idToken, intent: 'PROVIDER' }),
+      jsonBody({ code, intent: 'PROVIDER' }),
       false,
     );
     storeSession(res);
     return res.user;
   },
-  /** Login por e-mail + senha (senha cadastrada no perfil). */
-  async loginWithPassword(email: string, password: string) {
-    const res = await request<TokenResponse>('/auth/login', jsonBody({ email, password }), false);
-    storeSession(res);
-    return res.user;
+  /**
+   * Login por e-mail + senha com 2FA por dispositivo.
+   * Aparelho novo devolve `code_required`; chame de novo com o `code`.
+   */
+  async loginWithPassword(
+    email: string,
+    password: string,
+    opts: { code?: string; trustDevice?: boolean } = {},
+  ): Promise<{ status: 'code_required'; devCode?: string } | { status: 'ok'; user: AuthUser }> {
+    const deviceToken = localStorage.getItem(DEVICE_KEY) ?? undefined;
+    const res = await request<PasswordLoginResult>(
+      '/auth/login',
+      jsonBody({ email, password, deviceToken, ...opts }),
+      false,
+    );
+    if (res.status === 'code_required') return { status: 'code_required', devCode: res.devCode };
+    if (res.deviceToken) localStorage.setItem(DEVICE_KEY, res.deviceToken);
+    storeSession({ accessToken: res.accessToken!, refreshToken: res.refreshToken!, expiresIn: res.expiresIn!, user: res.user! });
+    return { status: 'ok', user: res.user! };
   },
   async acceptInvite(input: {
     token: string;
@@ -288,6 +305,13 @@ export const api = {
   },
   getPricing(quoteId: string) {
     return request<PricingView>(`/pricing/${quoteId}`);
+  },
+  // Pagamento faseado (milestones) — visão do prestador + solicitar fase.
+  getMilestones(quoteId: string) {
+    return request<Milestone[]>(`/quotes/${quoteId}/milestones`);
+  },
+  requestMilestone(milestoneId: string) {
+    return request<{ ok: boolean }>(`/provider/milestones/${milestoneId}/request`, { method: 'POST' });
   },
   // Visitas
   listVisits(quoteId: string) {
