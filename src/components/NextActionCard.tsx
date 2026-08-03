@@ -21,7 +21,7 @@ export interface NextActionCardProps {
   ctaLabel: string;
   onCta: () => void | Promise<void>;
   /** Quando presente, pede confirmação (ação irreversível). */
-  confirm?: { description: string; confirmLabel?: string; danger?: boolean };
+  confirm?: { description: string; confirmLabel?: string; danger?: boolean; irreversible?: boolean };
 }
 
 /**
@@ -80,6 +80,7 @@ export function NextActionCard({ tone = 'primary', icon, title, description, cta
           description={confirm.description}
           confirmLabel={confirm.confirmLabel ?? ctaLabel}
           danger={confirm.danger}
+          irreversible={confirm.irreversible}
           onConfirm={run}
           onClose={() => setAsking(false)}
         />

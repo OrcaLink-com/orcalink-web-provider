@@ -332,6 +332,25 @@ export interface ProviderFinance {
   escrow: ProviderFinanceEntry[];
 }
 
+export interface ProviderCommission {
+  quoteId: string;
+  categoryName: string;
+  clientName: string;
+  title: string | null;
+  dealCents: number;
+  commissionCents: number;
+  status: 'PENDING' | 'REPORTED' | 'CONFIRMED';
+  reportedAt: string | null;
+  confirmedAt: string | null;
+  createdAt: string;
+}
+
+export interface ProviderCommissions {
+  toPayCents: number;
+  confirmedCents: number;
+  items: ProviderCommission[];
+}
+
 export interface ServiceArea {
   latitude: number | null;
   longitude: number | null;

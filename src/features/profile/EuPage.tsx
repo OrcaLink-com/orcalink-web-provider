@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { LuHeadphones, LuPencil, LuDownload } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { useProfile, useRating } from '../../lib/queries';
+import { paymentsEnabled } from '../../lib/flags';
 import { Avatar, Button, ButtonLink, Card, ListRow, RatingStars } from '../../components/ui';
 import { ContactModal } from '../../components/ContactModal';
 import { InstallGuide } from '../../components/InstallGuide';
@@ -46,7 +47,12 @@ export function EuPage() {
       <section>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Meu negócio</h2>
         <Card className="divide-y divide-border p-0">
-          <ListRow icon={<IconWallet size={18} />} title="Financeiro" subtitle="Recebimentos e repasses" to="/app/financeiro" />
+          <ListRow
+            icon={<IconWallet size={18} />}
+            title="Financeiro"
+            subtitle={paymentsEnabled ? 'Recebimentos e repasses' : 'Comissões a repassar'}
+            to="/app/financeiro"
+          />
           <ListRow icon={<IconArea size={18} />} title="Área de atendimento" subtitle="Raio e localização" to="/app/area" />
           <ListRow icon={<IconAgenda size={18} />} title="Disponibilidade & bloqueios" subtitle="Sua agenda" to="/app/agenda" />
         </Card>

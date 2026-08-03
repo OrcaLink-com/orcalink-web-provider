@@ -94,7 +94,7 @@ function Benefits() {
   const items = [
     { icon: <IconBusiness size={20} />, title: 'Novos orçamentos', desc: 'Oportunidades da sua área, em tempo real.' },
     { icon: <IconAgenda size={20} />, title: 'Gestão de agenda', desc: 'Disponibilidade, bloqueios e visitas organizados.' },
-    { icon: <IconWallet size={20} />, title: 'Painel financeiro', desc: 'Acompanhe seus recebimentos e repasses.' },
+    { icon: <IconWallet size={20} />, title: 'Recebimento direto', desc: 'Combine e receba o pagamento diretamente do cliente, do seu jeito.' },
     { icon: <IconMetrics size={20} />, title: 'Métricas', desc: 'Conversão, receita e tempo de resposta.' },
     { icon: <IconHistory size={20} />, title: 'Histórico de clientes', desc: 'Tudo de cada negociação num só lugar.' },
     { icon: <IconStar size={20} />, title: 'Avaliações', desc: 'Construa sua reputação e ganhe mais trabalhos.' },
@@ -139,7 +139,7 @@ function HowItWorks() {
 function Differentials() {
   const items = [
     { icon: <IconFast size={22} />, title: 'Rápido de usar', desc: 'Responda oportunidades em poucos toques.' },
-    { icon: <IconShield size={22} />, title: 'Pagamento garantido', desc: 'Valor em custódia, repasse na conclusão.' },
+    { icon: <IconShield size={22} />, title: 'Você fecha direto', desc: 'Negocie e combine o pagamento diretamente com o cliente. A plataforma conecta e organiza.' },
     { icon: <IconGrowth size={22} />, title: 'Mais visibilidade', desc: 'Apareça para clientes da sua região.' },
   ];
   return (

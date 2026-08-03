@@ -28,6 +28,7 @@ import type { ChatActionHandlers, ChatMessage, ChatParticipant, ProposalPayload 
 import { ProposalDocument } from '../../components/ProposalDocument';
 import type { Proposal, ProposalItemGroup } from '../../lib/types';
 import { messagesToChat, toServiceStatus } from './chatAdapter';
+import { paymentsEnabled } from '../../lib/flags';
 import { computeNextStep } from './nextStep';
 import { NextStepBanner } from '../../components/NextStepBanner';
 import { NextActionCard } from '../../components/NextActionCard';
@@ -311,14 +312,21 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
           tone="green"
           icon={<LuCircleCheck size={20} />}
           title="Concluiu o serviço?"
-          description="Marque como concluído. O cliente confirma para liberar o pagamento; se não confirmar, a Orca Link media."
+          description={
+            paymentsEnabled
+              ? 'Marque como concluído. O cliente confirma para liberar o pagamento; se não confirmar, a Orca Link media.'
+              : 'Marque como concluído. O cliente confirma a conclusão do serviço.'
+          }
           ctaLabel="Marcar serviço como concluído"
           onCta={async () => {
             await markDone.mutateAsync();
           }}
           confirm={{
-            description: 'Isso informa que, na sua visão, o serviço foi finalizado. O pagamento NÃO é liberado automaticamente — depende da confirmação do cliente ou da análise da Orca Link.',
+            description: paymentsEnabled
+              ? 'Isso informa que, na sua visão, o serviço foi finalizado. O pagamento NÃO é liberado automaticamente — depende da confirmação do cliente ou da análise da Orca Link.'
+              : 'Isso avisa ao cliente que, na sua visão, o serviço foi concluído. Ele confirma a conclusão para finalizar.',
             confirmLabel: 'Sim, marcar concluído',
+            irreversible: false,
           }}
         />
       );
@@ -998,7 +1006,9 @@ function ProposalForm({
 
       {!isPre && (
         <div>
-          <FieldLabel>Formas de pagamento aceitas</FieldLabel>
+          <FieldLabel>
+            {paymentsEnabled ? 'Formas de pagamento aceitas' : 'Como você quer receber (registro)'}
+          </FieldLabel>
           <div className="flex gap-2">
             <PayChip active={acceptsPix} onClick={() => setAcceptsPix(!acceptsPix)} icon={<LuQrCode size={15} />}>
               PIX
@@ -1010,15 +1020,20 @@ function ProposalForm({
         </div>
       )}
 
-      {/* Plano de pagamento faseado (só na proposta final) */}
+      {/* Plano em etapas (só na proposta final). Com pagamento ON = cobrança faseada com
+          custódia; no modo indicação = só registra o acordo de etapas (sem custódia/checks). */}
       {!isPre && (
         <div className="rounded-lg border border-border">
           <div className="flex items-center justify-between gap-3 p-3">
             <span className="flex items-center gap-2 text-sm font-medium">
               <LuLayers size={16} className={phased ? 'text-primary' : 'text-text-muted'} />
               <span>
-                Cobrar em fases
-                <span className="mt-0.5 block text-xs font-normal text-text-muted">Cliente paga por etapa, com custódia</span>
+                {paymentsEnabled ? 'Cobrar em fases' : 'Dividir em etapas (registro do acordo)'}
+                <span className="mt-0.5 block text-xs font-normal text-text-muted">
+                  {paymentsEnabled
+                    ? 'Cliente paga por etapa, com custódia'
+                    : 'Registra as etapas e valores combinados. O pagamento é combinado por fora.'}
+                </span>
               </span>
             </span>
             <Switch checked={phased} onChange={setPhased} />
@@ -1027,8 +1042,9 @@ function ProposalForm({
           {phased && (
             <div className="space-y-3 border-t border-border p-3">
               <p className="text-xs leading-relaxed text-text-muted">
-                O cliente paga cada fase quando ela começa; o valor fica em custódia e é liberado
-                quando ele confirma a entrega dela.
+                {paymentsEnabled
+                  ? 'O cliente paga cada fase quando ela começa; o valor fica em custódia e é liberado quando ele confirma a entrega dela.'
+                  : 'Só para deixar o acordo registrado: as etapas e valores combinados com o cliente. A OrçaLink não cobra nem processa esses valores.'}
               </p>
 
               <div className="space-y-2">

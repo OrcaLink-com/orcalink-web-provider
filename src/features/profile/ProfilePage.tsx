@@ -23,6 +23,7 @@ import {
   useUpdateProviderProfile,
 } from "../../lib/queries";
 import { api } from "../../lib/api";
+import { paymentsEnabled } from "../../lib/flags";
 import { useAuth } from "../../auth/AuthContext";
 import type { PortfolioItem } from "../../lib/types";
 import { AvatarUploader } from "../../components/AvatarUploader";
@@ -477,7 +478,7 @@ function ProfileEditor({
                 você.
               </p>
             </div>
-            {(() => {
+            {paymentsEnabled && (() => {
               const isCnpj = f.document.replace(/\D/g, "").length > 11;
               return (
                 <div className="space-y-3 rounded-medium border border-border bg-content2/30 p-3">

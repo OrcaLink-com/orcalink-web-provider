@@ -15,6 +15,7 @@ import type {
   Proposal,
   ProviderDashboard,
   ProviderFinance,
+  ProviderCommissions,
   ProviderProfile,
   PublicProviderProfile,
   ProviderQuote,
@@ -288,6 +289,14 @@ export const api = {
   /** Painel financeiro (recebíveis do próprio prestador). */
   getFinance() {
     return request<ProviderFinance>('/provider/me/finance');
+  },
+  /** Comissões a repassar (modo indicação). */
+  getCommissions() {
+    return request<ProviderCommissions>('/provider/me/commissions');
+  },
+  /** Prestador informa que repassou a comissão de um serviço. */
+  reportCommission(quoteId: string) {
+    return request<{ ok: true }>(`/provider/quotes/${quoteId}/commission/report`, { method: 'POST' });
   },
   startConversation(quoteId: string) {
     return request<{ conversationId: string }>(`/provider/quotes/${quoteId}/start`, {

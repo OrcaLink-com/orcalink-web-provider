@@ -25,10 +25,23 @@ export const queryKeys = {
   myVisits: ['provider', 'my-visits'] as const,
   dashboard: ['provider', 'dashboard'] as const,
   finance: ['provider', 'finance'] as const,
+  commissions: ['provider', 'commissions'] as const,
 };
 
 export function useProviderFinance() {
   return useQuery({ queryKey: queryKeys.finance, queryFn: api.getFinance });
+}
+
+export function useProviderCommissions() {
+  return useQuery({ queryKey: queryKeys.commissions, queryFn: api.getCommissions });
+}
+
+export function useReportCommission() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (quoteId: string) => api.reportCommission(quoteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.commissions }),
+  });
 }
 
 export function useRating() {

@@ -9,6 +9,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  /** Mostra o aviso "não poderá ser desfeita" (default true). */
+  irreversible?: boolean;
   onConfirm: () => void | Promise<void>;
   onClose: () => void;
 }
@@ -24,6 +26,7 @@ export function ConfirmDialog({
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
   danger,
+  irreversible = true,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -69,7 +72,9 @@ export function ConfirmDialog({
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold leading-tight">{title}</h3>
                   <p className="mt-1.5 text-sm text-text-muted">{description}</p>
-                  <p className="mt-1 text-xs font-medium text-text-muted">Esta ação não poderá ser desfeita.</p>
+                  {irreversible && (
+                    <p className="mt-1 text-xs font-medium text-text-muted">Esta ação não poderá ser desfeita.</p>
+                  )}
                 </div>
               </div>
             </div>

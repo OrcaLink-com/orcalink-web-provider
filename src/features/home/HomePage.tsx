@@ -7,6 +7,7 @@ import {
   useProviderDashboard,
 } from '../../lib/queries';
 import { formatBRL } from '../../lib/format';
+import { paymentsEnabled } from '../../lib/flags';
 import {
   AreaTrend,
   BarTrend,
@@ -277,9 +278,17 @@ function buildAlerts(
     }
   }
 
-  // Financeiro: repasses recebidos na semana.
+  // Financeiro: receita da semana (repasses no modo pagamento; serviços fechados no modo indicação).
   if (dash && dash.revenueWeekCents > 0) {
-    out.push({ key: 'finance-week', icon: <IconPayment size={sz} />, title: 'Repasses recebidos', subtitle: `${formatBRL(dash.revenueWeekCents)} nos últimos 7 dias`, to: '/app/financeiro', tone: 'finance', category: 'finance' });
+    out.push({
+      key: 'finance-week',
+      icon: <IconPayment size={sz} />,
+      title: paymentsEnabled ? 'Repasses recebidos' : 'Serviços concluídos',
+      subtitle: `${formatBRL(dash.revenueWeekCents)} nos últimos 7 dias`,
+      to: '/app/financeiro',
+      tone: 'finance',
+      category: 'finance',
+    });
   }
 
   return out;
