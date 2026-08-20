@@ -811,7 +811,7 @@ function ProposalForm({
     'w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-text-muted/70 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/25';
 
   return (
-    <form onSubmit={onSubmit} className="max-h-[70vh] space-y-3 overflow-y-auto border-t border-border bg-content1 p-4">
+    <form onSubmit={onSubmit} className="max-h-[70vh] w-full space-y-3 overflow-y-auto overflow-x-hidden border-t border-border bg-content1 p-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-foreground">{initial ? 'Proposta final a partir da estimativa' : 'Enviar proposta'}</p>
         <button type="button" onClick={onClose} className="text-xs font-medium text-text-muted hover:text-foreground">

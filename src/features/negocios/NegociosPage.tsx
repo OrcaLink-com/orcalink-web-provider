@@ -91,7 +91,7 @@ function OpportunitiesTab() {
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [sort, setSort] = useState<Sort>('urgencia');
+  const [sort, setSort] = useState<Sort>('data'); // padrão: mais recentes
   const [maxDistance, setMaxDistance] = useState(50);
   const [maxPrice, setMaxPrice] = useState(0); // 0 = sem limite
 

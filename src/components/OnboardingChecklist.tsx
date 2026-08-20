@@ -30,28 +30,28 @@ export function OnboardingChecklist() {
       label: 'Escolha suas categorias',
       hint: 'Você só recebe oportunidades das categorias que atende.',
       done: p.categoryIds.length > 0,
-      to: '/app/perfil',
+      to: '/app/perfil?s=empresa',
     },
     {
       key: 'company',
       label: 'Apresente sua empresa',
       hint: 'Nome e uma breve descrição para os clientes.',
       done: Boolean(p.companyName && p.bio),
-      to: '/app/perfil',
+      to: '/app/perfil?s=empresa',
     },
     {
       key: 'logo',
       label: 'Adicione a sua logo',
       hint: 'Aparece no seu perfil público e passa mais confiança.',
       done: Boolean(p.logoUrl),
-      to: '/app/perfil',
+      to: '/app/perfil?s=empresa',
     },
     {
       key: 'document',
       label: 'Informe seu CPF ou CNPJ',
       hint: 'Necessário para receber os pagamentos dos serviços.',
       done: Boolean(p.document),
-      to: '/app/perfil',
+      to: '/app/perfil?s=empresa',
     },
     {
       key: 'area',
@@ -65,7 +65,7 @@ export function OnboardingChecklist() {
       label: 'Informe um telefone de contato',
       hint: 'Para os clientes falarem com você.',
       done: Boolean(p.phone),
-      to: '/app/perfil',
+      to: '/app/perfil?s=empresa',
     },
   ];
 
