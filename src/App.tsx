@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
+import { lazyPage } from './lib/lazyPage';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { useMe } from './lib/queries';
@@ -9,20 +10,20 @@ import { TermsGate } from './components/TermsGate';
 import { Spinner } from './components/ui';
 
 // Code-splitting: cada tela vira um chunk sob demanda (recharts fica isolado na Home).
-const LandingPage = lazy(() => import('./features/landing/LandingPage').then((m) => ({ default: m.LandingPage })));
-const LoginPage = lazy(() => import('./features/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
-const PendingApproval = lazy(() => import('./features/auth/PendingApproval').then((m) => ({ default: m.PendingApproval })));
-const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })));
-const NegociosPage = lazy(() => import('./features/negocios/NegociosPage').then((m) => ({ default: m.NegociosPage })));
-const QuoteDetailPage = lazy(() => import('./features/quotes/QuoteDetailPage').then((m) => ({ default: m.QuoteDetailPage })));
-const ConversationPage = lazy(() => import('./features/conversations/ConversationPage').then((m) => ({ default: m.ConversationPage })));
-const ServiceAreaPage = lazy(() => import('./features/area/ServiceAreaPage').then((m) => ({ default: m.ServiceAreaPage })));
-const AgendaPage = lazy(() => import('./features/agenda/AgendaPage').then((m) => ({ default: m.AgendaPage })));
-const EuPage = lazy(() => import('./features/profile/EuPage').then((m) => ({ default: m.EuPage })));
-const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
-const InboxPage = lazy(() => import('./features/inbox/InboxPage').then((m) => ({ default: m.InboxPage })));
-const FinancePage = lazy(() => import('./features/finance/FinancePage').then((m) => ({ default: m.FinancePage })));
-const NotFoundPage = lazy(() => import('./features/misc/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const LandingPage = lazyPage(() => import('./features/landing/LandingPage'), 'LandingPage');
+const LoginPage = lazyPage(() => import('./features/auth/LoginPage'), 'LoginPage');
+const PendingApproval = lazyPage(() => import('./features/auth/PendingApproval'), 'PendingApproval');
+const HomePage = lazyPage(() => import('./features/home/HomePage'), 'HomePage');
+const NegociosPage = lazyPage(() => import('./features/negocios/NegociosPage'), 'NegociosPage');
+const QuoteDetailPage = lazyPage(() => import('./features/quotes/QuoteDetailPage'), 'QuoteDetailPage');
+const ConversationPage = lazyPage(() => import('./features/conversations/ConversationPage'), 'ConversationPage');
+const ServiceAreaPage = lazyPage(() => import('./features/area/ServiceAreaPage'), 'ServiceAreaPage');
+const AgendaPage = lazyPage(() => import('./features/agenda/AgendaPage'), 'AgendaPage');
+const EuPage = lazyPage(() => import('./features/profile/EuPage'), 'EuPage');
+const ProfilePage = lazyPage(() => import('./features/profile/ProfilePage'), 'ProfilePage');
+const InboxPage = lazyPage(() => import('./features/inbox/InboxPage'), 'InboxPage');
+const FinancePage = lazyPage(() => import('./features/finance/FinancePage'), 'FinancePage');
+const NotFoundPage = lazyPage(() => import('./features/misc/NotFoundPage'), 'NotFoundPage');
 
 function Loading() {
   return <Spinner label="Carregando…" />;
