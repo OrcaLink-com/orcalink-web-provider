@@ -1,6 +1,9 @@
 import type { ChatMessage, ChatParticipant, EventPayload, ProposalPayload, ServiceStatus } from '../../components/Chat';
 import type { Message, Proposal, QuoteStatus } from '../../lib/types';
 
+/** O evento de agendamento é de EXECUÇÃO (não visita técnica)? Deriva do texto do backend. */
+const isExec = (b?: string | null): boolean => !!b && /execu[çc][aã]o/i.test(b);
+
 /**
  * Classifica uma mensagem de SISTEMA (texto livre do backend) num card de evento,
  * inferindo ícone/tom pelo conteúdo. Fallback neutro "Atualização do orçamento".
@@ -116,33 +119,54 @@ export function messagesToChat(
           payload: { icon: 'x', tone: 'neutral', title: 'Proposta recusada', description: m.body ?? undefined },
         });
         break;
-      case 'VISIT_REQUEST':
-        // O prestador é quem solicita a visita → card informativo (sem botões).
+      case 'VISIT_REQUEST': {
+        // O prestador é quem agenda → card informativo (sem botões). O tipo (visita
+        // técnica × execução) vem do texto do backend, então o rótulo não fica errado.
+        const exec = isExec(m.body);
         out.push({
           ...base,
           type: 'event',
           payload: {
             icon: 'calendar-plus',
             tone: 'blue',
-            title: 'Solicitação de visita enviada',
-            description: 'Você solicitou uma visita técnica ao cliente. Agora basta aguardar a resposta.',
+            title: exec ? 'Execução agendada' : 'Solicitação de visita enviada',
+            description:
+              m.body ??
+              (exec
+                ? 'Você propôs a data de execução ao cliente. Aguarde a confirmação.'
+                : 'Você solicitou uma visita técnica ao cliente. Aguarde a resposta.'),
           },
         });
         break;
-      case 'VISIT_CONFIRMED':
+      }
+      case 'VISIT_CONFIRMED': {
+        const exec = isExec(m.body);
         out.push({
           ...base,
           type: 'event',
-          payload: { icon: 'calendar-check', tone: 'green', title: 'Horário confirmado', description: m.body ?? 'O cliente confirmou o horário da visita.' },
+          payload: {
+            icon: 'calendar-check',
+            tone: 'green',
+            title: exec ? 'Execução confirmada' : 'Horário confirmado',
+            description: m.body ?? 'O cliente confirmou o horário.',
+          },
         });
         break;
-      case 'VISIT_RESCHEDULED':
+      }
+      case 'VISIT_RESCHEDULED': {
+        const exec = isExec(m.body);
         out.push({
           ...base,
           type: 'event',
-          payload: { icon: 'calendar-clock', tone: 'amber', title: 'Cliente sugeriu nova data', description: m.body ?? undefined },
+          payload: {
+            icon: 'calendar-clock',
+            tone: 'amber',
+            title: exec ? 'Nova data de execução sugerida' : 'Cliente sugeriu nova data',
+            description: m.body ?? undefined,
+          },
         });
         break;
+      }
       case 'SYSTEM':
         if (m.body) out.push({ ...base, type: 'event', payload: systemEvent(m.body) });
         break;

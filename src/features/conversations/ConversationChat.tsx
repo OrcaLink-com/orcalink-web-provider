@@ -105,6 +105,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const markDone = useMarkServiceDone(conversation?.quoteId);
   const reschedule = useRescheduleVisit(conversation?.quoteId);
   const cancelVisit = useCancelVisit(conversation?.quoteId);
+  const confirmVisitTop = useConfirmVisit(conversation?.quoteId);
   const paid = conversation?.quoteStatus === 'PAID';
   const canStartExecution = conversation?.quoteStatus === 'EXECUTION_SCHEDULED';
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
@@ -358,7 +359,7 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
             Fechar
           </button>
         </div>
-        <VisitsPanel quoteId={conversation.quoteId} mode={execPhase ? 'execution' : 'visit'} />
+        <VisitsPanel quoteId={conversation.quoteId} mode={execPhase ? 'execution' : 'visit'} onDone={() => setPane('none')} />
       </div>
     ) : execPhase ? undefined : finalPending ? (
       // Proposta final enviada — aguarda decisão do cliente (trava novas ações).
@@ -433,6 +434,25 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       />
     ) : null;
 
+  // #2: cliente sugeriu uma nova data (RESCHEDULED) → traz o "Aceitar" pra cima,
+  // em vez de ficar escondido dentro do painel de agendamento.
+  // Só aparece se a ÚLTIMA sugestão foi do cliente (a vez de confirmar é do prestador).
+  const rescheduledVisit = isActive
+    ? visitsForGate.data?.find((v) => v.status === 'RESCHEDULED' && v.lastActorId !== user?.id)
+    : undefined;
+  const acceptDateCard = rescheduledVisit ? (
+    <NextActionCard
+      tone="amber"
+      icon={<LuCalendarPlus size={20} />}
+      title="Nova data proposta"
+      description={`Nova data: ${rescheduledVisit.scheduledAt ? formatDateTime(rescheduledVisit.scheduledAt) : '—'}. Aceite para confirmar ou proponha outra em "Solicitar visita".`}
+      ctaLabel="Aceitar nova data"
+      onCta={async () => {
+        await confirmVisitTop.mutateAsync(rescheduledVisit.id);
+      }}
+    />
+  ) : null;
+
   return (
     <>
       <ChatConversationView
@@ -449,8 +469,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         onBack={onBack}
         headerBanner={headerBanner}
         aboveComposer={
-          manageCard || nextAction || aboveComposer ? (
+          acceptDateCard || manageCard || nextAction || aboveComposer ? (
             <>
+              {acceptDateCard}
               {manageCard}
               {nextAction}
               {aboveComposer}
@@ -464,7 +485,8 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
 }
 
 /* ───────── Agendar visita técnica (negociação) OU execução (após pagamento) ───────── */
-function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'execution' }) {
+function VisitsPanel({ quoteId, mode, onDone }: { quoteId: string; mode: 'visit' | 'execution'; onDone?: () => void }) {
+  const { user } = useAuth();
   const visitsQ = useVisits(quoteId);
   const request = useRequestVisit(quoteId);
   const confirmVisit = useConfirmVisit(quoteId);
@@ -499,6 +521,7 @@ function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'exec
     try {
       await request.mutateAsync({ type, scheduledAt: selectedSlotISO });
       setSelectedSlotISO('');
+      onDone?.(); // fecha o painel após enviar (o card de evento já aparece no chat)
     } catch (err) {
       setError((err as Error).message);
     }
@@ -513,9 +536,10 @@ function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'exec
               <span>
                 {mode === 'execution' ? 'Execução' : 'Visita técnica'} ·{' '}
                 {v.scheduledAt ? formatDateTime(v.scheduledAt) : '—'} · <strong>{v.status}</strong>
-                {v.status === 'RESCHEDULED' && ' (cliente sugeriu nova data)'}
+                {v.status === 'RESCHEDULED' &&
+                  (v.lastActorId !== user?.id ? ' (cliente sugeriu nova data)' : ' (aguardando o cliente)')}
               </span>
-              {v.status === 'RESCHEDULED' && (
+              {v.status === 'RESCHEDULED' && v.lastActorId !== user?.id && (
                 <button
                   type="button"
                   onClick={() => confirmVisit.mutate(v.id)}
@@ -553,8 +577,12 @@ function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'exec
           </p>
         )}
         {slotsQ.data && slotsQ.data.slots.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {slotsQ.data.slots.map((s) => (
+          <>
+            <p className="text-xs font-medium text-text-muted">
+              Horários disponíveis (seguem a sua agenda) — toque para escolher:
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {slotsQ.data.slots.map((s) => (
               <button
                 type="button"
                 key={s.startISO}
@@ -572,7 +600,8 @@ function VisitsPanel({ quoteId, mode }: { quoteId: string; mode: 'visit' | 'exec
                 {s.label}
               </button>
             ))}
-          </div>
+            </div>
+          </>
         )}
 
         {error && <p className="text-xs text-danger">{error}</p>}

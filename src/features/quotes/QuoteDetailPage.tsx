@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProviderQuote, queryKeys } from '../../lib/queries';
+import { useProviderQuote, useMessages, queryKeys } from '../../lib/queries';
 import { api } from '../../lib/api';
 import { formatBRL, formatDateTime } from '../../lib/format';
-import { Button, Card, EmptyState, SectionHeader, Spinner, StatusChip } from '../../components/ui';
-import { IconBack, IconChat, IconImages, IconLocation, IconUser } from '../../components/icons';
+import { Button, Card, EmptyState, SectionHeader, Spinner, StatusChip, Timeline } from '../../components/ui';
+import { IconBack, IconChat, IconHistory, IconImages, IconLocation, IconUser } from '../../components/icons';
 import { ConversationDrawer } from '../conversations/ConversationDrawer';
+import { buildProviderTimeline } from './providerTimeline';
 
 /**
  * Detalhe do orçamento visto pelo PRESTADOR — espelha o do cliente:
@@ -21,6 +22,13 @@ export function QuoteDetailPage() {
 
   const [openConv, setOpenConv] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+
+  // Histórico: montado das mensagens da conversa do prestador (proposta/aceite/visita/pagamento).
+  const messagesQ = useMessages(quote?.myConversationId ?? null);
+  const timeline = useMemo(
+    () => (quote ? buildProviderTimeline(quote.createdAt, messagesQ.data ?? []) : []),
+    [quote, messagesQ.data],
+  );
 
   // Abertura do chat pela notificação (toast → state; push/deep-link → ?chat=).
   const location = useLocation();
@@ -162,6 +170,16 @@ export function QuoteDetailPage() {
             </Button>
           </div>
         </Card>
+      </section>
+
+      {/* Histórico — passos do orçamento (proposta, aceite, visita, pagamento…) sem abrir o chat. */}
+      <section>
+        <SectionHeader title="Histórico" />
+        {timeline.length <= 1 ? (
+          <EmptyState icon={<IconHistory size={22} />} title="Ainda sem movimentações" />
+        ) : (
+          <Timeline items={timeline} />
+        )}
       </section>
 
       <ConversationDrawer
