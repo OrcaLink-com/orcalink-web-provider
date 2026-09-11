@@ -441,6 +441,10 @@ export interface ConversationSummary {
   counterpartId: string;
   counterpartAvatarUrl?: string;
   providerDoneAt?: string;
+  /** Modo indicação: contratado sem cobrança (pagamento por fora). */
+  externalPayment?: boolean;
+  /** Modo indicação: quando o prestador confirmou o recebimento do pagamento. */
+  externalPaymentConfirmedAt?: string;
   lastMessage?: Message;
   unreadCount: number;
   latestProposal?: Proposal;

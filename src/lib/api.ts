@@ -294,6 +294,10 @@ export const api = {
   getCommissions() {
     return request<ProviderCommissions>('/provider/me/commissions');
   },
+  /** Prestador confirma que recebeu o pagamento do cliente (modo indicação — por fora). */
+  confirmPayment(quoteId: string) {
+    return request<{ ok: true }>(`/provider/quotes/${quoteId}/confirm-payment`, { method: 'POST' });
+  },
   /** Prestador informa que repassou a comissão de um serviço. */
   reportCommission(quoteId: string) {
     return request<{ ok: true }>(`/provider/quotes/${quoteId}/commission/report`, { method: 'POST' });

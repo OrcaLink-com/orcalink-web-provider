@@ -7,6 +7,7 @@ import {
   useAvailableSlots,
   useCancelVisit,
   useConfirmVisit,
+  useConfirmPayment,
   useCreateProposal,
   useRescheduleVisit,
   useMessages,
@@ -110,6 +111,10 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const canStartExecution = conversation?.quoteStatus === 'EXECUTION_SCHEDULED';
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
   const providerMarkedDone = Boolean(conversation?.providerDoneAt);
+  // Modo indicação: precisa confirmar o recebimento do pagamento (por fora) antes de agendar a execução.
+  const needsPaymentConfirm =
+    paid && Boolean(conversation?.externalPayment) && !conversation?.externalPaymentConfirmedAt;
+  const confirmPayment = useConfirmPayment(conversation?.quoteId);
 
   const [pane, setPane] = useState<'none' | 'proposal' | 'visit'>('none');
   const [prefillEstimate, setPrefillEstimate] = useState<Proposal | null>(null);
@@ -277,6 +282,25 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         <AwaitingCard
           title="Aguardando confirmação do cliente"
           description="A data de execução foi enviada e está aguardando aprovação. Você poderá reagendar quando o cliente responder."
+        />
+      );
+    } else if (needsPaymentConfirm) {
+      // Modo indicação: o pagamento é combinado por fora → o prestador confirma o recebimento.
+      nextAction = (
+        <NextActionCard
+          tone="amber"
+          icon={<LuBanknote size={20} />}
+          title="Confirme o recebimento do pagamento"
+          description="Combine o pagamento diretamente com o cliente. Ao receber, confirme aqui para liberar o agendamento da execução."
+          ctaLabel="Confirmar recebimento"
+          onCta={async () => {
+            await confirmPayment.mutateAsync();
+          }}
+          confirm={{
+            description:
+              'Confirme que você já recebeu o pagamento combinado com o cliente. Depois disso você poderá agendar a data de execução.',
+            confirmLabel: 'Sim, recebi o pagamento',
+          }}
         />
       );
     } else if (paid) {

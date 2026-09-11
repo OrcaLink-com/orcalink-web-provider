@@ -44,6 +44,19 @@ export function useReportCommission() {
   });
 }
 
+/** Prestador confirma manualmente o recebimento do pagamento (modo indicação). */
+export function useConfirmPayment(quoteId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.confirmPayment(quoteId as string),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.myConversations });
+      if (quoteId) void qc.invalidateQueries({ queryKey: queryKeys.visits(quoteId) });
+      void qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+  });
+}
+
 export function useRating() {
   return useQuery({ queryKey: queryKeys.rating, queryFn: api.getRating });
 }
