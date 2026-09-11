@@ -317,7 +317,6 @@ function WorksList({
           <li key={c.id}>
             <WorkCard
               conv={c}
-              variant={variant}
               onView={() => navigate(`/app/orcamento/${c.quoteId}`)}
               onOpenChat={() => setOpenConv(c.id)}
             />
@@ -330,20 +329,51 @@ function WorksList({
   );
 }
 
-/** Indicador de atenção (só na aba Em negociação): o que precisa de ação. */
-function attentionBadge(c: ConversationSummary): { label: string; className: string } | null {
+/**
+ * Próximo passo do prestador, derivado do estado — visível na lista sem abrir a conversa.
+ * `action` = é a vez dele (destaque); `waiting` = aguardando o cliente; `done` = encerrado.
+ */
+type WorkHint = { label: string; tone: 'action' | 'waiting' | 'done' };
+const HINT_CLASS: Record<WorkHint['tone'], string> = {
+  action: 'bg-primary/15 text-primary',
+  waiting: 'bg-content2 text-text-muted',
+  done: 'bg-emerald-500/15 text-emerald-300',
+};
+
+function workHint(c: ConversationSummary): WorkHint {
   const lm = c.lastMessage;
-  // Última mensagem foi do cliente (senderId = contraparte) → precisa responder.
-  if (lm && lm.senderId && lm.senderId === c.counterpartId) {
-    return { label: 'Cliente respondeu', className: 'bg-amber-500/15 text-amber-300' };
+  const clientReplied = Boolean(lm?.senderId && lm.senderId === c.counterpartId);
+  switch (c.quoteStatus) {
+    case 'WAITING_PROPOSALS':
+    case 'IN_NEGOTIATION':
+      if (!c.latestProposal) return { label: 'Sua vez: envie uma proposta', tone: 'action' };
+      if (c.latestProposal.status === 'PENDING')
+        return clientReplied
+          ? { label: 'Cliente respondeu — veja', tone: 'action' }
+          : { label: 'Aguardando o cliente decidir', tone: 'waiting' };
+      return clientReplied
+        ? { label: 'Cliente respondeu — responda', tone: 'action' }
+        : { label: 'Em negociação', tone: 'waiting' };
+    case 'PROVIDER_SELECTED':
+    case 'WAITING_PAYMENT':
+      return { label: 'Aguardando pagamento do cliente', tone: 'waiting' };
+    case 'PAID':
+      return { label: 'Sua vez: agende a execução', tone: 'action' };
+    case 'EXECUTION_SCHEDULED':
+      return { label: 'Sua vez: inicie o serviço na data', tone: 'action' };
+    case 'IN_PROGRESS':
+      return c.providerDoneAt
+        ? { label: 'Aguardando o cliente confirmar a conclusão', tone: 'waiting' }
+        : { label: 'Sua vez: marque como concluído', tone: 'action' };
+    case 'FINISHED':
+      if (c.externalPayment && !c.externalPaymentConfirmedAt)
+        return { label: 'Sua vez: confirme o recebimento', tone: 'action' };
+      return { label: 'Concluído', tone: 'done' };
+    case 'CANCELED':
+      return { label: 'Cancelado', tone: 'done' };
+    default:
+      return { label: 'Aguardando', tone: 'waiting' };
   }
-  if (!c.latestProposal) {
-    return { label: 'Envie uma proposta', className: 'bg-sky-500/15 text-sky-300' };
-  }
-  if (c.quoteStatus === 'WAITING_PAYMENT') {
-    return { label: 'Aguardando pagamento', className: 'bg-emerald-500/15 text-emerald-300' };
-  }
-  return { label: 'Aguardando cliente', className: 'bg-content2 text-text-muted' };
 }
 
 function relative(iso: string): string {
@@ -358,16 +388,14 @@ function relative(iso: string): string {
 
 function WorkCard({
   conv: c,
-  variant,
   onView,
   onOpenChat,
 }: {
   conv: ConversationSummary;
-  variant: WorksVariant;
   onView: () => void;
   onOpenChat: () => void;
 }) {
-  const badge = variant === 'negotiation' ? attentionBadge(c) : null;
+  const hint = workHint(c);
   const unread = c.unreadCount ?? 0;
   return (
     <Card className={`p-4 ${unread > 0 ? 'border-primary/40 bg-primary/5' : ''}`}>
@@ -398,13 +426,10 @@ function WorkCard({
                 <IconChat size={11} /> {unread} nova{unread > 1 ? 's' : ''} mensage{unread > 1 ? 'ns' : 'm'}
               </span>
             )}
-            {badge ? (
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.className}`}>
-                {badge.label}
-              </span>
-            ) : (
-              <StatusChip status={c.quoteStatus} size="sm" />
-            )}
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${HINT_CLASS[hint.tone]}`}>
+              {hint.label}
+            </span>
+            <StatusChip status={c.quoteStatus} size="sm" />
             {c.lastMessage && (
               <span className="inline-flex items-center gap-1 text-[11px] text-text-muted">
                 <IconClock size={11} /> {relative(c.lastMessage.createdAt)}

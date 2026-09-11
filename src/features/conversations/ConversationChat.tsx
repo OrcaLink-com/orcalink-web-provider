@@ -111,9 +111,12 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
   const canStartExecution = conversation?.quoteStatus === 'EXECUTION_SCHEDULED';
   const inProgress = conversation?.quoteStatus === 'IN_PROGRESS';
   const providerMarkedDone = Boolean(conversation?.providerDoneAt);
-  // Modo indicação: precisa confirmar o recebimento do pagamento (por fora) antes de agendar a execução.
+  // Modo indicação: ao FINAL do serviço, o prestador confirma que recebeu o pagamento (por fora).
+  // É o gatilho da cobrança de comissão pela plataforma — não aparece para o cliente.
   const needsPaymentConfirm =
-    paid && Boolean(conversation?.externalPayment) && !conversation?.externalPaymentConfirmedAt;
+    Boolean(conversation?.externalPayment) &&
+    !conversation?.externalPaymentConfirmedAt &&
+    (conversation?.quoteStatus === 'FINISHED' || (inProgress && providerMarkedDone));
   const confirmPayment = useConfirmPayment(conversation?.quoteId);
 
   const [pane, setPane] = useState<'none' | 'proposal' | 'visit'>('none');
@@ -284,25 +287,6 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
           description="A data de execução foi enviada e está aguardando aprovação. Você poderá reagendar quando o cliente responder."
         />
       );
-    } else if (needsPaymentConfirm) {
-      // Modo indicação: o pagamento é combinado por fora → o prestador confirma o recebimento.
-      nextAction = (
-        <NextActionCard
-          tone="amber"
-          icon={<LuBanknote size={20} />}
-          title="Confirme o recebimento do pagamento"
-          description="Combine o pagamento diretamente com o cliente. Ao receber, confirme aqui para liberar o agendamento da execução."
-          ctaLabel="Confirmar recebimento"
-          onCta={async () => {
-            await confirmPayment.mutateAsync();
-          }}
-          confirm={{
-            description:
-              'Confirme que você já recebeu o pagamento combinado com o cliente. Depois disso você poderá agendar a data de execução.',
-            confirmLabel: 'Sim, recebi o pagamento',
-          }}
-        />
-      );
     } else if (paid) {
       nextAction = (
         <NextActionCard
@@ -357,6 +341,25 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
       );
     }
   }
+
+  // Modo indicação: ao final, confirmar o recebimento do pagamento (fora do gate de "isActive"
+  // — pode aparecer mesmo com a conversa já encerrada). Só o prestador vê.
+  const paymentConfirmCard = needsPaymentConfirm ? (
+    <NextActionCard
+      tone="amber"
+      icon={<LuBanknote size={20} />}
+      title="Você recebeu o pagamento do cliente?"
+      description="O pagamento é combinado por fora. Ao receber, confirme aqui — é o que informa a Orca Link para acertar a comissão. O cliente não vê isso."
+      ctaLabel="Confirmar recebimento"
+      onCta={async () => {
+        await confirmPayment.mutateAsync();
+      }}
+      confirm={{
+        description: 'Confirme que você já recebeu o pagamento combinado com o cliente por fora da plataforma.',
+        confirmLabel: 'Sim, recebi o pagamento',
+      }}
+    />
+  ) : null;
 
   // Fase de execução (após pagamento): o agendamento trata só de execução.
   const execPhase = paid || canStartExecution || inProgress;
@@ -493,8 +496,9 @@ export function ConversationChat({ conversationId, onBack }: ConversationChatPro
         onBack={onBack}
         headerBanner={headerBanner}
         aboveComposer={
-          acceptDateCard || manageCard || nextAction || aboveComposer ? (
+          paymentConfirmCard || acceptDateCard || manageCard || nextAction || aboveComposer ? (
             <>
+              {paymentConfirmCard}
               {acceptDateCard}
               {manageCard}
               {nextAction}

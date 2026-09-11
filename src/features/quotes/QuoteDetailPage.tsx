@@ -5,7 +5,7 @@ import { useProviderQuote, useMessages, queryKeys } from '../../lib/queries';
 import { api } from '../../lib/api';
 import { formatBRL, formatDateTime } from '../../lib/format';
 import { Button, Card, EmptyState, SectionHeader, Spinner, StatusChip, Timeline } from '../../components/ui';
-import { IconBack, IconChat, IconHistory, IconImages, IconLocation, IconUser } from '../../components/icons';
+import { IconBack, IconChat, IconHistory, IconLocation, IconUser } from '../../components/icons';
 import { ConversationDrawer } from '../conversations/ConversationDrawer';
 import { buildProviderTimeline } from './providerTimeline';
 
@@ -83,8 +83,33 @@ export function QuoteDetailPage() {
           </div>
           <StatusChip status={quote.status} />
         </div>
-        <p className="text-sm text-text-muted">{quote.description}</p>
-        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-text-muted">{quote.description}</p>
+
+        {/* Fotos de referência do pedido do cliente — logo abaixo da descrição (mesmo assunto). */}
+        {quote.images.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {quote.images.map((img) => (
+              <a
+                key={img.id}
+                href={img.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block h-20 w-20 overflow-hidden rounded-medium border border-border"
+                title="Abrir imagem"
+              >
+                <img
+                  src={img.url}
+                  alt="Foto de referência do serviço"
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
+                />
+              </a>
+            ))}
+          </div>
+        )}
+
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <Field label="Categoria" value={quote.categoryName} />
           <Field label="Modo" value={quote.requiresVisit ? 'Com visita técnica' : 'À distância'} />
           <Field label="Região" value={[quote.neighborhood, quote.city].filter(Boolean).join(' · ') || '—'} />
@@ -124,28 +149,6 @@ export function QuoteDetailPage() {
           )}
         </div>
       </Card>
-
-      {/* Imagens */}
-      <section>
-        <SectionHeader title="Imagens" />
-        {quote.images.length === 0 ? (
-          <EmptyState icon={<IconImages size={24} />} title="Sem imagens anexadas" />
-        ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {quote.images.map((img) => (
-              <a key={img.id} href={img.url} target="_blank" rel="noreferrer">
-                <img
-                  src={img.url}
-                  alt="referência"
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-square w-full rounded-md object-cover"
-                />
-              </a>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* Negociação */}
       <section className="space-y-3">
