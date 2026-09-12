@@ -11,6 +11,7 @@ import {
   LuMapPin,
   LuTrash2,
   LuUser,
+  LuX,
 } from "react-icons/lu";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -270,19 +271,39 @@ function ProfileEditor({
         "logo",
       );
   }
-  function onAddPortfolio(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  /** Fotos de um post (compat: item antigo tinha só `url`). */
+  const imagesOf = (it: PortfolioItem) => (it.images?.length ? it.images : it.url ? [it.url] : []);
+  /** Novo post vazio (o prestador dá um título, ex.: "Casa alto padrão", e adiciona fotos). */
+  function onAddPost() {
+    setPortfolio((prev) => [...prev, { id: `${Date.now()}`, title: "", description: "", images: [] }]);
+  }
+  /** Adiciona uma ou mais fotos a um post. */
+  function onAddPhotos(idx: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (file)
+    for (const file of files) {
       void uploadTo(
         file,
         (url) =>
-          setPortfolio((prev) => [
-            ...prev,
-            { id: `${Date.now()}`, url, title: "", description: "" },
-          ]),
+          setPortfolio((prev) =>
+            prev.map((it, i) => {
+              if (i !== idx) return it;
+              const imgs = [...imagesOf(it), url];
+              return { ...it, images: imgs, url: imgs[0] };
+            }),
+          ),
         "portfolio",
       );
+    }
+  }
+  function removePhoto(idx: number, imgIdx: number) {
+    setPortfolio((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it;
+        const imgs = imagesOf(it).filter((_, j) => j !== imgIdx);
+        return { ...it, images: imgs, url: imgs[0] };
+      }),
+    );
   }
   function updateItem(idx: number, patch: Partial<PortfolioItem>) {
     setPortfolio((prev) =>
@@ -659,40 +680,69 @@ function ProfileEditor({
               icon={<LuImages size={16} />}
               title="Portfólio de trabalhos"
             />
-            {portfolio.map((it, idx) => (
-              <div
-                key={it.id ?? it.url}
-                className="overflow-hidden rounded-2xl border border-border"
-              >
-                <div className="relative aspect-video w-full bg-content2">
-                  <img
-                    src={it.url}
-                    alt={it.title ?? ""}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPortfolio((prev) => prev.filter((_, i) => i !== idx))
-                    }
-                    className="absolute right-2 top-2 rounded-full bg-black/60 p-1.5 text-white"
-                    aria-label="Remover trabalho"
-                  >
-                    <LuTrash2 size={15} />
-                  </button>
-                </div>
-                <div className="space-y-2 p-3">
+            <p className="-mt-1 text-xs text-text-muted">
+              Cada trabalho é um post (ex.: “Casa alto padrão”) com várias fotos. A primeira foto é a capa.
+            </p>
+            {portfolio.map((it, idx) => {
+              const imgs = imagesOf(it);
+              return (
+                <div key={it.id ?? it.url ?? idx} className="space-y-3 rounded-2xl border border-border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                      Trabalho {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPortfolio((prev) => prev.filter((_, i) => i !== idx))}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
+                      aria-label="Remover trabalho"
+                    >
+                      <LuTrash2 size={14} /> Remover
+                    </button>
+                  </div>
+
+                  {/* Fotos do post: capa (1ª) + demais, com adicionar/remover */}
+                  <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {imgs.map((url, imgIdx) => (
+                      <div
+                        key={url + imgIdx}
+                        className="relative aspect-square h-24 shrink-0 overflow-hidden rounded-xl border border-border bg-content2"
+                      >
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        {imgIdx === 0 && (
+                          <span className="absolute left-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            Capa
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(idx, imgIdx)}
+                          className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                          aria-label="Remover foto"
+                        >
+                          <LuX size={13} />
+                        </button>
+                      </div>
+                    ))}
+                    <label className="flex aspect-square h-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-[11px] text-text-muted hover:bg-content2">
+                      <LuImagePlus size={18} />
+                      Fotos
+                      <input type="file" accept="image/*" multiple onChange={(e) => onAddPhotos(idx, e)} className="hidden" />
+                    </label>
+                  </div>
+
                   <Input
                     label="Título"
                     value={it.title ?? ""}
                     onChange={(v) => updateItem(idx, { title: v })}
-                    placeholder="Ex.: Pintura de fachada"
+                    placeholder="Ex.: Casa alto padrão — pintura completa"
                   />
                   <Textarea
                     label="Descrição"
                     value={it.description ?? ""}
                     onChange={(v) => updateItem(idx, { description: v })}
                     minRows={2}
+                    placeholder="O que foi feito neste trabalho…"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <Select
@@ -709,17 +759,15 @@ function ProfileEditor({
                     />
                   </div>
                 </div>
-              </div>
-            ))}
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-6 text-sm text-text-muted hover:bg-content2">
+              );
+            })}
+            <button
+              type="button"
+              onClick={onAddPost}
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-6 text-sm font-medium text-text-muted hover:bg-content2 hover:text-foreground"
+            >
               <LuImagePlus size={18} /> Adicionar trabalho
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onAddPortfolio}
-                className="hidden"
-              />
-            </label>
+            </button>
           </Card>
         );
       case "seguranca":

@@ -191,7 +191,10 @@ export interface ProviderSocial {
 
 export interface PortfolioItem {
   id?: string;
-  url: string;
+  /** Capa (= primeira foto). Compat. com portfólios antigos de foto única. */
+  url?: string;
+  /** Fotos do post (a 1ª é a capa). */
+  images?: string[];
   title?: string;
   description?: string;
   categoryId?: string;

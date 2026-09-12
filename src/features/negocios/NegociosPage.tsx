@@ -281,6 +281,7 @@ function WorksList({
   const navigate = useNavigate();
   const [openConv, setOpenConv] = useState<string | null>(null);
   const [sort, setSort] = useState<'recent' | 'old'>('recent');
+  const [onlyAction, setOnlyAction] = useState(false);
 
   const activityAt = (c: ConversationSummary) => c.lastMessage?.createdAt ?? '';
   const sorted = useMemo(() => {
@@ -291,6 +292,13 @@ function WorksList({
     return arr;
   }, [conversations, sort]);
 
+  // "Precisam de você": itens onde é a vez do prestador agir (workHint tone = action).
+  const actionCount = useMemo(
+    () => conversations.filter((c) => workHint(c).tone === 'action').length,
+    [conversations],
+  );
+  const visible = onlyAction ? sorted.filter((c) => workHint(c).tone === 'action') : sorted;
+
   if (loading) return <Spinner label="Carregando…" />;
   if (conversations.length === 0) {
     return <EmptyState icon={<IconBusiness size={26} />} title="Nada por aqui" hint={empty} />;
@@ -298,31 +306,60 @@ function WorksList({
 
   return (
     <div className="space-y-3">
-      {variant === 'negotiation' && (
-        <div className="flex justify-end">
-          <Select
-            aria-label="Ordenar"
-            options={[
-              { value: 'recent', label: 'Atividade recente' },
-              { value: 'old', label: 'Mais antigos' },
-            ]}
-            value={sort}
-            onChange={(v) => setSort(v as 'recent' | 'old')}
-          />
+      {(actionCount > 0 || variant === 'negotiation') && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {variant !== 'finished' && actionCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setOnlyAction((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                onlyAction
+                  ? 'border-primary bg-primary/15 text-primary'
+                  : 'border-border bg-content1 text-text-muted hover:text-foreground'
+              }`}
+              aria-pressed={onlyAction}
+            >
+              <IconClock size={13} /> Precisam de você
+              <span className={`rounded-full px-1.5 ${onlyAction ? 'bg-primary/25 text-primary' : 'bg-content2 text-foreground'}`}>
+                {actionCount}
+              </span>
+            </button>
+          ) : (
+            <span />
+          )}
+          {variant === 'negotiation' && (
+            <Select
+              aria-label="Ordenar"
+              options={[
+                { value: 'recent', label: 'Atividade recente' },
+                { value: 'old', label: 'Mais antigos' },
+              ]}
+              value={sort}
+              onChange={(v) => setSort(v as 'recent' | 'old')}
+            />
+          )}
         </div>
       )}
 
-      <ul className="space-y-3">
-        {sorted.map((c) => (
-          <li key={c.id}>
-            <WorkCard
-              conv={c}
-              onView={() => navigate(`/app/orcamento/${c.quoteId}`)}
-              onOpenChat={() => setOpenConv(c.id)}
-            />
-          </li>
-        ))}
-      </ul>
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={<IconBusiness size={26} />}
+          title="Tudo em dia"
+          hint="Nada aguardando a sua ação agora. Toque em “Precisam de você” de novo para ver todos."
+        />
+      ) : (
+        <ul className="space-y-3">
+          {visible.map((c) => (
+            <li key={c.id}>
+              <WorkCard
+                conv={c}
+                onView={() => navigate(`/app/orcamento/${c.quoteId}`)}
+                onOpenChat={() => setOpenConv(c.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
       <ConversationDrawer conversationId={openConv} isOpen={openConv !== null} onClose={() => setOpenConv(null)} />
     </div>
