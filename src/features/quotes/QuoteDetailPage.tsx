@@ -8,7 +8,7 @@ import { Button, Card, EmptyState, SectionHeader, Spinner, StatusChip, Timeline 
 import { IconBack, IconChat, IconHistory, IconUser } from '../../components/icons';
 import { QuotePhotos } from '../../components/QuotePhotos';
 import { ConversationDrawer } from '../conversations/ConversationDrawer';
-import { buildProviderTimeline } from './providerTimeline';
+import { buildProviderTimeline, providerTurnAction } from './providerTimeline';
 
 /**
  * Detalhe do orçamento visto pelo PRESTADOR — espelha o do cliente:
@@ -27,7 +27,14 @@ export function QuoteDetailPage() {
   // Histórico: montado das mensagens da conversa do prestador (proposta/aceite/visita/pagamento).
   const messagesQ = useMessages(quote?.myConversationId ?? null);
   const timeline = useMemo(
-    () => (quote ? buildProviderTimeline(quote.createdAt, messagesQ.data ?? []) : []),
+    () =>
+      quote
+        ? buildProviderTimeline(
+            quote.createdAt,
+            messagesQ.data ?? [],
+            providerTurnAction(quote.status, quote.canSendFinalProposal),
+          )
+        : [],
     [quote, messagesQ.data],
   );
 

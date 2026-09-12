@@ -34,6 +34,7 @@ import {
   Button,
   Card,
   Input,
+  Modal,
   Select,
   Spinner,
   Textarea,
@@ -168,6 +169,7 @@ function ProfileEditor({
     setF((s) => ({ ...s, [k]: v }));
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [social, setSocial] = useState({
     instagram: "",
     facebook: "",
@@ -275,6 +277,7 @@ function ProfileEditor({
   const imagesOf = (it: PortfolioItem) => (it.images?.length ? it.images : it.url ? [it.url] : []);
   /** Novo post vazio (o prestador dá um título, ex.: "Casa alto padrão", e adiciona fotos). */
   function onAddPost() {
+    setEditingIdx(portfolio.length); // índice do post que será anexado → abre seu editor
     setPortfolio((prev) => [...prev, { id: `${Date.now()}`, title: "", description: "", images: [] }]);
   }
   /** Adiciona uma ou mais fotos a um post. */
@@ -683,91 +686,143 @@ function ProfileEditor({
             <p className="-mt-1 text-xs text-text-muted">
               Cada trabalho é um post (ex.: “Casa alto padrão”) com várias fotos. A primeira foto é a capa.
             </p>
-            {portfolio.map((it, idx) => {
-              const imgs = imagesOf(it);
-              return (
-                <div key={it.id ?? it.url ?? idx} className="space-y-3 rounded-2xl border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                      Trabalho {idx + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPortfolio((prev) => prev.filter((_, i) => i !== idx))}
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-danger hover:bg-danger/10"
-                      aria-label="Remover trabalho"
-                    >
-                      <LuTrash2 size={14} /> Remover
-                    </button>
-                  </div>
-
-                  {/* Fotos do post: capa (1ª) + demais, com adicionar/remover */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                    {imgs.map((url, imgIdx) => (
-                      <div
-                        key={url + imgIdx}
-                        className="relative aspect-square h-24 shrink-0 overflow-hidden rounded-xl border border-border bg-content2"
-                      >
-                        <img src={url} alt="" className="h-full w-full object-cover" />
-                        {imgIdx === 0 && (
-                          <span className="absolute left-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                            Capa
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(idx, imgIdx)}
-                          className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
-                          aria-label="Remover foto"
-                        >
-                          <LuX size={13} />
-                        </button>
+            {/* Grade estilo Instagram: capas quadradas; toque para editar o post. */}
+            <div className="grid grid-cols-3 gap-1.5">
+              {portfolio.map((it, idx) => {
+                const imgs = imagesOf(it);
+                const cover = imgs[0];
+                return (
+                  <button
+                    key={it.id ?? idx}
+                    type="button"
+                    onClick={() => setEditingIdx(idx)}
+                    className="group relative aspect-square overflow-hidden rounded-lg border border-border bg-content2 text-left"
+                  >
+                    {cover ? (
+                      <img
+                        src={cover}
+                        alt={it.title ?? ""}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-text-muted">
+                        <LuImagePlus size={20} />
+                        <span className="text-[10px]">sem foto</span>
                       </div>
-                    ))}
-                    <label className="flex aspect-square h-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-[11px] text-text-muted hover:bg-content2">
-                      <LuImagePlus size={18} />
-                      Fotos
-                      <input type="file" accept="image/*" multiple onChange={(e) => onAddPhotos(idx, e)} className="hidden" />
-                    </label>
-                  </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    {imgs.length > 1 && (
+                      <span className="absolute right-1 top-1 inline-flex items-center gap-0.5 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+                        <LuImages size={10} /> {imgs.length}
+                      </span>
+                    )}
+                    {it.title && (
+                      <p className="absolute inset-x-0 bottom-0 line-clamp-2 p-1.5 text-[11px] font-semibold leading-tight text-white">
+                        {it.title}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={onAddPost}
+                className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-xs font-medium text-text-muted hover:bg-content2 hover:text-foreground"
+              >
+                <LuImagePlus size={22} /> Novo
+              </button>
+            </div>
 
-                  <Input
-                    label="Título"
-                    value={it.title ?? ""}
-                    onChange={(v) => updateItem(idx, { title: v })}
-                    placeholder="Ex.: Casa alto padrão — pintura completa"
-                  />
-                  <Textarea
-                    label="Descrição"
-                    value={it.description ?? ""}
-                    onChange={(v) => updateItem(idx, { description: v })}
-                    minRows={2}
-                    placeholder="O que foi feito neste trabalho…"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select
-                      label="Categoria"
-                      options={catOptions}
-                      value={it.categoryId ?? ""}
-                      onChange={(v) => updateItem(idx, { categoryId: v })}
-                    />
-                    <Input
-                      label="Data (opcional)"
-                      value={it.date ?? ""}
-                      onChange={(v) => updateItem(idx, { date: v })}
-                      placeholder="2025-03"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            <button
-              type="button"
-              onClick={onAddPost}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-border py-6 text-sm font-medium text-text-muted hover:bg-content2 hover:text-foreground"
+            {/* Editor do post selecionado (modal) */}
+            <Modal
+              isOpen={editingIdx != null}
+              onClose={() => setEditingIdx(null)}
+              title="Editar trabalho"
+              footer={
+                <>
+                  <Button
+                    variant="ghost"
+                    className="text-danger"
+                    startContent={<LuTrash2 size={15} />}
+                    onClick={() => {
+                      if (editingIdx != null) setPortfolio((prev) => prev.filter((_, i) => i !== editingIdx));
+                      setEditingIdx(null);
+                    }}
+                  >
+                    Remover trabalho
+                  </Button>
+                  <Button onClick={() => setEditingIdx(null)}>Concluir</Button>
+                </>
+              }
             >
-              <LuImagePlus size={18} /> Adicionar trabalho
-            </button>
+              {editingIdx != null &&
+                portfolio[editingIdx] &&
+                (() => {
+                  const idx = editingIdx;
+                  const it = portfolio[idx];
+                  const imgs = imagesOf(it);
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {imgs.map((url, imgIdx) => (
+                          <div
+                            key={url + imgIdx}
+                            className="relative aspect-square h-24 shrink-0 overflow-hidden rounded-xl border border-border bg-content2"
+                          >
+                            <img src={url} alt="" className="h-full w-full object-cover" />
+                            {imgIdx === 0 && (
+                              <span className="absolute left-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                Capa
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(idx, imgIdx)}
+                              className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                              aria-label="Remover foto"
+                            >
+                              <LuX size={13} />
+                            </button>
+                          </div>
+                        ))}
+                        <label className="flex aspect-square h-24 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border text-[11px] text-text-muted hover:bg-content2">
+                          <LuImagePlus size={18} />
+                          Fotos
+                          <input type="file" accept="image/*" multiple onChange={(e) => onAddPhotos(idx, e)} className="hidden" />
+                        </label>
+                      </div>
+
+                      <Input
+                        label="Título"
+                        value={it.title ?? ""}
+                        onChange={(v) => updateItem(idx, { title: v })}
+                        placeholder="Ex.: Casa alto padrão — pintura completa"
+                      />
+                      <Textarea
+                        label="Descrição"
+                        value={it.description ?? ""}
+                        onChange={(v) => updateItem(idx, { description: v })}
+                        minRows={2}
+                        placeholder="O que foi feito neste trabalho…"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Select
+                          label="Categoria"
+                          options={catOptions}
+                          value={it.categoryId ?? ""}
+                          onChange={(v) => updateItem(idx, { categoryId: v })}
+                        />
+                        <Input
+                          label="Data (opcional)"
+                          value={it.date ?? ""}
+                          onChange={(v) => updateItem(idx, { date: v })}
+                          placeholder="2025-03"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+            </Modal>
           </Card>
         );
       case "seguranca":
