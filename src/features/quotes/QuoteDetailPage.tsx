@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { formatBRL, formatDateTime } from '../../lib/format';
 import { Button, Card, EmptyState, SectionHeader, Spinner, StatusChip, Timeline } from '../../components/ui';
 import { IconBack, IconChat, IconHistory, IconLocation, IconUser } from '../../components/icons';
+import { QuotePhotos } from '../../components/QuotePhotos';
 import { ConversationDrawer } from '../conversations/ConversationDrawer';
 import { buildProviderTimeline } from './providerTimeline';
 
@@ -84,31 +85,6 @@ export function QuoteDetailPage() {
           <StatusChip status={quote.status} />
         </div>
         <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-text-muted">{quote.description}</p>
-
-        {/* Fotos de referência do pedido do cliente — logo abaixo da descrição (mesmo assunto). */}
-        {quote.images.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {quote.images.map((img) => (
-              <a
-                key={img.id}
-                href={img.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block h-20 w-20 overflow-hidden rounded-medium border border-border"
-                title="Abrir imagem"
-              >
-                <img
-                  src={img.url}
-                  alt="Foto de referência do serviço"
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-200 hover:scale-105"
-                />
-              </a>
-            ))}
-          </div>
-        )}
-
         <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
           <Field label="Categoria" value={quote.categoryName} />
           <Field label="Modo" value={quote.requiresVisit ? 'Com visita técnica' : 'À distância'} />
@@ -148,6 +124,9 @@ export function QuoteDetailPage() {
             <StatusChip label="Proposta final após a visita" varName="--color-status-scheduled" size="sm" />
           )}
         </div>
+
+        {/* Fotos de referência do pedido do cliente — no fim do card, carrossel + lightbox. */}
+        <QuotePhotos images={quote.images} />
       </Card>
 
       {/* Negociação */}
