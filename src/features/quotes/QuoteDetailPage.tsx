@@ -5,7 +5,7 @@ import { useProviderQuote, useMessages, queryKeys } from '../../lib/queries';
 import { api } from '../../lib/api';
 import { formatBRL, formatDateTime } from '../../lib/format';
 import { Button, Card, EmptyState, SectionHeader, Spinner, StatusChip, Timeline } from '../../components/ui';
-import { IconBack, IconChat, IconHistory, IconLocation, IconUser } from '../../components/icons';
+import { IconBack, IconChat, IconHistory, IconUser } from '../../components/icons';
 import { QuotePhotos } from '../../components/QuotePhotos';
 import { ConversationDrawer } from '../conversations/ConversationDrawer';
 import { buildProviderTimeline } from './providerTimeline';
@@ -129,30 +129,11 @@ export function QuoteDetailPage() {
         <QuotePhotos images={quote.images} />
       </Card>
 
-      {/* Negociação */}
-      <section className="space-y-3">
-        <SectionHeader title="Negociação" />
-        <Card className="flex items-center justify-between gap-3 p-4">
-          <div className="flex items-center gap-2 text-sm text-text-muted">
-            <IconChat size={18} className="text-primary" />
-            <span>
-              {quote.myConversationId
-                ? 'Você já está conversando com o cliente.'
-                : 'Envie sua proposta e comece a conversa com o cliente.'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {quote.distanceKm != null && (
-              <span className="hidden items-center gap-1 text-xs text-text-muted sm:inline-flex">
-                <IconLocation size={12} /> {quote.distanceKm.toFixed(1)} km
-              </span>
-            )}
-            <Button size="sm" onClick={startAndOpen} disabled={starting}>
-              {quote.myConversationId ? 'Abrir conversa' : starting ? 'Abrindo…' : 'Propor'}
-            </Button>
-          </div>
-        </Card>
-      </section>
+      {/* Conversa: o prestador só tem a própria conversa com o cliente — ação principal
+          da tela, direta e visível (sem uma seção "Negociação" escondendo o botão). */}
+      <Button full size="lg" onClick={startAndOpen} loading={starting} startContent={<IconChat size={18} />}>
+        {quote.myConversationId ? 'Abrir conversa com o cliente' : 'Enviar proposta e conversar'}
+      </Button>
 
       {/* Histórico — passos do orçamento (proposta, aceite, visita, pagamento…) sem abrir o chat. */}
       <section>
