@@ -37,6 +37,8 @@ export function App() {
         {/* Público: a landing é sempre a home em "/" (mesmo logado). */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={isAuthenticated ? <Navigate to="/app" replace /> : <LoginPage />} />
+        {/* Convite do admin (?token=...) — a LoginPage renderiza o formulário de convite. */}
+        <Route path="/convite" element={isAuthenticated ? <Navigate to="/app" replace /> : <LoginPage />} />
         {/* Documentos legais (públicos). */}
         <Route path="/legal" element={<LegalIndex />} />
         <Route path="/termos" element={<LegalPage doc="terms" />} />
