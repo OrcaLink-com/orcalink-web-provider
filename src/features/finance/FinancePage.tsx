@@ -3,6 +3,7 @@ import { useProviderFinance, useProviderCommissions, useReportCommission } from 
 import { formatBRL, formatDateTime } from '../../lib/format';
 import { paymentsEnabled } from '../../lib/flags';
 import { Card, EmptyState, PageHeader, SectionHeader, Spinner } from '../../components/ui';
+import { FieldHint } from '../../components/FieldHint';
 import { IconWallet, IconClock, IconPayment, IconSuccess, IconUser } from '../../components/icons';
 import type { ProviderCommission, ProviderFinanceEntry } from '../../lib/types';
 
@@ -31,6 +32,12 @@ function CommissionsFinance() {
         subtitle="Serviços fechados pela plataforma. O pagamento é combinado por fora; aqui você acerta a comissão com a OrçaLink."
       />
 
+      <FieldHint label="Como funciona a comissão?">
+        Você recebe o pagamento direto do cliente, por fora. Sobre cada serviço fechado aqui, uma parte é a
+        comissão da OrçaLink — você a repassa para nós e confirmamos o recebimento. Nada é descontado
+        automaticamente.
+      </FieldHint>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <SummaryCard icon={<IconSuccess size={16} />} label="Recebido dos clientes" value={formatBRL(totalDealCents)} hint={`${data.items.length} serviço(s) · por fora`} accent />
         <SummaryCard icon={<IconWallet size={16} />} label="Comissão a repassar" value={formatBRL(data.toPayCents)} hint={`${pending.length} pendente(s)`} />
@@ -40,7 +47,11 @@ function CommissionsFinance() {
       <section>
         <SectionHeader title="A repassar" />
         {pending.length === 0 ? (
-          <EmptyState icon={<IconSuccess size={22} />} title="Nada pendente" hint="Comissões de serviços fechados aparecem aqui." />
+          <EmptyState
+            icon={<IconSuccess size={22} />}
+            title="Nada a repassar"
+            hint="Quando você concluir um serviço, a comissão da plataforma sobre ele aparece aqui para você repassar."
+          />
         ) : (
           <ul className="space-y-2.5">
             {pending.map((c) => (
@@ -172,7 +183,11 @@ function PaymentFinance() {
       <section>
         <SectionHeader title="Aguardando conclusão do serviço" />
         {data.escrow.length === 0 ? (
-          <EmptyState icon={<IconClock size={22} />} title="Nada em custódia" />
+          <EmptyState
+            icon={<IconClock size={22} />}
+            title="Nada em custódia"
+            hint="O valor de um serviço em andamento fica retido aqui até o cliente confirmar a conclusão."
+          />
         ) : (
           <ul className="space-y-2.5">
             {data.escrow.map((e) => (

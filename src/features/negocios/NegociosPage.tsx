@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Slider } from '@heroui/react';
 import { useMyConversations, useOpenQuotes, useProviderProfile } from '../../lib/queries';
@@ -59,7 +59,12 @@ export function NegociosPage() {
           variant="negotiation"
           loading={convsQ.isLoading}
           conversations={convs.filter((c) => NEGOTIATING_Q.includes(c.quoteStatus))}
-          empty="Nenhuma negociação em aberto. Responda uma oportunidade para começar."
+          empty="Assim que você responder a uma oportunidade, a conversa com o cliente aparece aqui."
+          emptyAction={
+            <Button size="sm" onClick={() => setTab('oportunidades')}>
+              Ver oportunidades
+            </Button>
+          }
         />
       )}
       {tab === 'execucao' && (
@@ -67,7 +72,12 @@ export function NegociosPage() {
           variant="execution"
           loading={convsQ.isLoading}
           conversations={convs.filter((c) => EXECUTING_Q.includes(c.quoteStatus))}
-          empty="Nenhum trabalho em execução. Quando um cliente pagar, ele aparece aqui."
+          empty="Trabalhos contratados entram aqui — do agendamento da execução até a conclusão."
+          emptyAction={
+            <Button size="sm" variant="secondary" onClick={() => setTab('negociacao')}>
+              Ver negociações
+            </Button>
+          }
         />
       )}
       {tab === 'finalizados' && (
@@ -75,7 +85,7 @@ export function NegociosPage() {
           variant="finished"
           loading={convsQ.isLoading}
           conversations={convs.filter((c) => FINISHED_Q.includes(c.quoteStatus))}
-          empty="Nenhum serviço concluído ainda."
+          empty="Seus serviços concluídos e as avaliações recebidas ficam guardados aqui."
         />
       )}
     </div>
@@ -202,7 +212,12 @@ function OpportunitiesTab() {
         <EmptyState
           icon={<IconLocation size={26} />}
           title="Nenhuma oportunidade nova"
-          hint="Ajuste os filtros ou sua área de atendimento. Trabalhos já iniciados ficam nas outras abas."
+          hint="Só mostramos pedidos das suas categorias, dentro do seu raio de atendimento. Amplie a área ou revise as categorias para receber mais. Trabalhos já iniciados ficam nas outras abas."
+          action={
+            <Button size="sm" variant="secondary" onClick={() => navigate('/app/area')}>
+              Rever área de atendimento
+            </Button>
+          }
         />
       ) : (
         <ul className="space-y-3">
@@ -272,11 +287,13 @@ function WorksList({
   conversations,
   loading,
   empty,
+  emptyAction,
 }: {
   variant: WorksVariant;
   conversations: ConversationSummary[];
   loading?: boolean;
   empty: string;
+  emptyAction?: ReactNode;
 }) {
   const navigate = useNavigate();
   const [openConv, setOpenConv] = useState<string | null>(null);
@@ -301,7 +318,9 @@ function WorksList({
 
   if (loading) return <Spinner label="Carregando…" />;
   if (conversations.length === 0) {
-    return <EmptyState icon={<IconBusiness size={26} />} title="Nada por aqui" hint={empty} />;
+    const title =
+      variant === 'negotiation' ? 'Nenhuma negociação ainda' : variant === 'execution' ? 'Nada em execução' : 'Nada concluído ainda';
+    return <EmptyState icon={<IconBusiness size={26} />} title={title} hint={empty} action={emptyAction} />;
   }
 
   return (

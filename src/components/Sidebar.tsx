@@ -4,7 +4,9 @@ import { LuChevronDown } from 'react-icons/lu';
 import { brand } from '@orcalink/design-tokens/brand.config';
 import { useAuth } from '../auth/AuthContext';
 import { NotificationsBell } from './NotificationsBell';
-import { useNotifications, useProfile } from '../lib/queries';
+import { useMyConversations, useNotifications, useProfile, useProviderProfile } from '../lib/queries';
+import { countProviderActions } from '../lib/providerTurn';
+import { profileSectionStatus, profileMissingCount, type ProfileSectionStatus } from '../lib/profileStatus';
 import { Avatar } from './ui';
 import { IconHome, IconBusiness, IconAgenda, IconArea, IconInbox, IconWallet, IconUser, IconLogout } from './icons';
 
@@ -20,8 +22,10 @@ const PROFILE_SUBS: { s: string; label: string }[] = [
 export function Sidebar() {
   const { user, logout } = useAuth();
   const notif = useNotifications();
+  const convs = useMyConversations();
   const profile = useProfile();
   const unread = notif.data?.unreadCount ?? 0;
+  const actions = countProviderActions(convs.data);
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-background px-3 py-5 lg:flex">
@@ -34,12 +38,15 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-6 space-y-1">
-        <Item to="/app" icon={<IconHome size={20} />} label="Home" end />
-        <Item to="/app/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" />
+        <Item to="/app" icon={<IconHome size={20} />} label="Início" end />
+        <Item to="/app/negocios" icon={<IconBusiness size={20} />} label="Trabalhos" badge={actions} />
         <Item to="/app/agenda" icon={<IconAgenda size={20} />} label="Agenda" />
         <Item to="/app/inbox" icon={<IconInbox size={20} />} label="Notificações" badge={unread} />
+
+        <div className="!my-3 border-t border-border" />
+
         <Item to="/app/financeiro" icon={<IconWallet size={20} />} label="Financeiro" />
-        <Item to="/app/area" icon={<IconArea size={20} />} label="Área de atendimento" />
+        <Item to="/app/area" icon={<IconArea size={20} />} label="Atendimento" />
         <ProfileGroup />
       </nav>
 
@@ -66,6 +73,13 @@ function ProfileGroup() {
   }, [onProfile]);
   const current = new URLSearchParams(loc.search).get('s') ?? 'dados';
 
+  // Sinaliza as seções essenciais ainda incompletas.
+  const meQ = useProfile();
+  const bizQ = useProviderProfile();
+  const status = profileSectionStatus(meQ.data, bizQ.data);
+  const ready = Boolean(bizQ.data);
+  const missing = ready ? profileMissingCount(status) : 0;
+
   return (
     <div>
       <button
@@ -77,21 +91,30 @@ function ProfileGroup() {
       >
         <IconUser size={20} />
         <span className="flex-1 text-left">Meu perfil</span>
+        {missing > 0 && !open && (
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" aria-label={`${missing} seções incompletas`} />
+        )}
         <LuChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="ml-4 mt-0.5 space-y-0.5 border-l border-border pl-2">
           {PROFILE_SUBS.map((sub) => {
             const isActive = onProfile && current === sub.s;
+            const incomplete = ready && sub.s in status && !status[sub.s as keyof ProfileSectionStatus];
             return (
               <Link
                 key={sub.s}
                 to={`/app/perfil?s=${sub.s}`}
-                className={`block rounded-medium px-3 py-2 text-sm transition-colors ${
+                className={`flex items-center gap-2 rounded-medium px-3 py-2 text-sm transition-colors ${
                   isActive ? 'bg-primary/15 font-medium text-primary' : 'text-text-muted hover:bg-content2 hover:text-foreground'
                 }`}
               >
-                {sub.label}
+                <span className="flex-1">{sub.label}</span>
+                {incomplete && (
+                  <span className="shrink-0 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                    Falta
+                  </span>
+                )}
               </Link>
             );
           })}

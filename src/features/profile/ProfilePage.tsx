@@ -29,6 +29,7 @@ import { useAuth } from "../../auth/AuthContext";
 import type { PortfolioItem } from "../../lib/types";
 import { AvatarUploader } from "../../components/AvatarUploader";
 import { CepField } from "../../components/CepField";
+import { FieldHint } from "../../components/FieldHint";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import {
   Button,
@@ -79,6 +80,10 @@ const NAV: { key: Section; label: string; desc: string; icon: ReactNode }[] = [
 export function ProfilePage() {
   const navigate = useNavigate();
   const profileQ = useProfile();
+  const [sp] = useSearchParams();
+  // Seção aberta no mobile (?s=…): esconde o cabeçalho grande para não ficarem
+  // dois "voltar" (o do topo + "Todas as seções"). No desktop o cabeçalho fica.
+  const sectionOpen = NAV.some((n) => n.key === sp.get("s"));
 
   if (profileQ.isLoading) return <Spinner label="Carregando perfil…" />;
   if (profileQ.isError || !profileQ.data)
@@ -89,8 +94,8 @@ export function ProfilePage() {
     );
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center gap-2">
+    <div className="mx-auto max-w-4xl">
+      <div className={`mb-6 items-center gap-2 ${sectionOpen ? "hidden lg:flex" : "flex"}`}>
         <button
           onClick={() => navigate(-1)}
           aria-label="Voltar"
@@ -392,7 +397,7 @@ function ProfileEditor({
     switch (section) {
       case "dados":
         return (
-          <Card className="space-y-4 p-5">
+          <div className="space-y-4">
             <SectionTitle icon={<LuUser size={16} />} title="Dados pessoais" />
             <div className="flex items-center gap-3">
               <AvatarUploader
@@ -428,11 +433,11 @@ function ProfileEditor({
                 )}
               </div>
             </div>
-          </Card>
+          </div>
         );
       case "empresa":
         return (
-          <Card className="space-y-5 p-5">
+          <div className="space-y-5">
             <SectionTitle icon={<LuBriefcase size={16} />} title="Empresa" />
             <p className="-mt-3 text-xs text-text-muted">
               Ajuda os clientes a conhecerem seu trabalho.
@@ -583,10 +588,12 @@ function ProfileEditor({
               placeholder="São Paulo, Guarulhos"
             />
             <div>
-              <p className="mb-2 text-sm text-text-muted">
-                Categorias atendidas
-              </p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-sm text-text-muted">Categorias atendidas</p>
+              <FieldHint>
+                Você só recebe oportunidades das categorias que marcar aqui. Selecione todas em que você
+                trabalha para não perder pedidos.
+              </FieldHint>
+              <div className="mt-2 flex flex-wrap gap-2">
                 {categoriesQ.data?.map((c) => {
                   const on = categoryIds.includes(c.id);
                   return (
@@ -643,11 +650,11 @@ function ProfileEditor({
                 placeholder="https://…"
               />
             </div>
-          </Card>
+          </div>
         );
       case "endereco":
         return (
-          <Card className="space-y-4 p-5">
+          <div className="space-y-4">
             <SectionTitle icon={<LuMapPin size={16} />} title="Endereço" />
             <CepField
               value={addr.zipCode}
@@ -674,11 +681,11 @@ function ProfileEditor({
                 placeholder="SP"
               />
             </div>
-          </Card>
+          </div>
         );
       case "portfolio":
         return (
-          <Card className="space-y-3 p-5">
+          <div className="space-y-3">
             <SectionTitle
               icon={<LuImages size={16} />}
               title="Portfólio de trabalhos"
@@ -823,7 +830,7 @@ function ProfileEditor({
                   );
                 })()}
             </Modal>
-          </Card>
+          </div>
         );
       case "seguranca":
         return (
@@ -838,33 +845,55 @@ function ProfileEditor({
     }
   }
 
+  // Seções essenciais: sinaliza o que ainda falta preencher para começar a receber.
+  const ready = Boolean(providerQ.data);
+  const sectionDone: Partial<Record<Section, boolean>> = {
+    dados: Boolean(name.trim() && personalPhone.trim()),
+    empresa: categoryIds.length > 0 && Boolean(f.companyName.trim() && f.document.trim()),
+    endereco: Boolean(addr.zipCode.trim() && addr.city.trim()),
+  };
+  const missingCount = (Object.keys(sectionDone) as Section[]).filter((k) => !sectionDone[k]).length;
+
   return (
     <>
-      <div className="mt-4">
+      <div>
         {/* Mobile: lista de seções. No desktop a navegação fica no menu lateral (Meu perfil). */}
         {active === null && (
           <div className="space-y-2 lg:hidden">
-            {NAV.map((n) => (
-              <Link
-                key={n.key}
-                to={`?s=${n.key}`}
-                className="flex w-full items-center gap-3 rounded-large border border-border bg-content1 p-4 text-left transition-colors hover:bg-content2"
-              >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-medium bg-primary/10 text-primary">
-                  {n.icon}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{n.label}</span>
-                  <span className="block truncate text-xs text-text-muted">
-                    {n.desc}
+            {ready && missingCount > 0 && (
+              <p className="px-1 pb-1 text-sm text-text-muted">
+                Complete as seções marcadas para começar a receber oportunidades.
+              </p>
+            )}
+            {NAV.map((n) => {
+              const essential = n.key in sectionDone;
+              const done = sectionDone[n.key];
+              return (
+                <Link
+                  key={n.key}
+                  to={`?s=${n.key}`}
+                  className="flex w-full items-center gap-3 rounded-large border border-border bg-content1 p-4 text-left transition-colors hover:bg-content2"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-medium bg-primary/10 text-primary">
+                    {n.icon}
                   </span>
-                </span>
-                <LuChevronRight
-                  size={18}
-                  className="shrink-0 text-text-muted"
-                />
-              </Link>
-            ))}
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{n.label}</span>
+                    <span className="block truncate text-xs text-text-muted">{n.desc}</span>
+                  </span>
+                  {ready && essential ? (
+                    done ? (
+                      <LuBadgeCheck size={18} className="shrink-0 text-success" aria-label="Completo" />
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-semibold text-warning">
+                        Falta preencher
+                      </span>
+                    )
+                  ) : null}
+                  <LuChevronRight size={18} className="shrink-0 text-text-muted" />
+                </Link>
+              );
+            })}
           </div>
         )}
 
@@ -872,14 +901,14 @@ function ProfileEditor({
         {active !== null && (
           <Link
             to="/app/perfil"
-            className="mb-3 inline-flex items-center gap-1 text-sm text-text-muted hover:text-foreground lg:hidden"
+            className="-ml-1 mb-6 inline-flex items-center gap-1.5 rounded-medium py-1.5 pl-1 pr-2 text-sm text-text-muted transition-colors hover:text-foreground lg:hidden"
           >
             <LuArrowLeft size={16} /> Todas as seções
           </Link>
         )}
 
         {/* Conteúdo da seção: desktop sempre; mobile só quando uma seção está aberta */}
-        <div className={active === null ? "hidden lg:block" : ""}>
+        <div className={active === null ? "hidden lg:block" : "space-y-1"}>
           {renderSection(eff)}
 
           {uploading && (
@@ -888,18 +917,11 @@ function ProfileEditor({
           {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
           {showSave && (
-            <div className="sticky bottom-3 z-10 mt-4 flex items-center gap-3 rounded-large border border-border bg-content1/95 p-3 shadow-pop backdrop-blur">
-              <Button
-                full
-                loading={saving}
-                disabled={uploading}
-                onClick={() => void saveAll()}
-              >
+            <div className="mt-6 flex items-center gap-3">
+              <Button full loading={saving} disabled={uploading} onClick={() => void saveAll()}>
                 Salvar alterações
               </Button>
-              {ok && (
-                <span className="shrink-0 text-sm text-success">Salvo!</span>
-              )}
+              {ok && <span className="shrink-0 text-sm font-medium text-success">Salvo!</span>}
             </div>
           )}
         </div>
@@ -1089,7 +1111,7 @@ function DangerZoneSection() {
 /* ───────── helpers ───────── */
 function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm font-semibold">
+    <div className="flex items-center gap-2 border-b border-border pb-2.5 text-sm font-semibold">
       <span className="text-primary">{icon}</span>
       {title}
     </div>

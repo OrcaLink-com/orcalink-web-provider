@@ -265,7 +265,11 @@ function AppointmentsList({
       </Card>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={<IconAgenda size={26} />} title="Nenhum compromisso" hint="Ajuste os filtros ou agende visitas nas conversas." />
+        <EmptyState
+          icon={<IconAgenda size={26} />}
+          title="Nenhum compromisso"
+          hint="Visitas técnicas e execuções que você agenda dentro de uma conversa aparecem aqui. Se acabou de agendar, verifique os filtros acima."
+        />
       ) : (
         <ul className="space-y-3">
           {filtered.map((v) => (
