@@ -104,12 +104,16 @@ function OpportunitiesTab() {
   const [sort, setSort] = useState<Sort>('data'); // padrão: mais recentes
   const [maxDistance, setMaxDistance] = useState(50);
   const [maxPrice, setMaxPrice] = useState(0); // 0 = sem limite
+  const [showExpired, setShowExpired] = useState(false); // expirados ocultos por padrão
 
   const list = useMemo(() => (quotes ?? []).filter((q) => !q.myConversationId), [quotes]);
   const categories = useMemo(() => Array.from(new Set(list.map((q) => q.categoryName))).sort(), [list]);
   const priceCap = useMemo(() => Math.max(0, ...list.map((q) => (q.budgetMaxCents ?? 0) / 100)), [list]);
 
-  const filtered = useMemo(() => {
+  const isExpired = (iso: string) => computeUrgency(iso).daysLeft <= 0;
+
+  // Passa pelos filtros (busca/categoria/distância/preço), SEM aplicar a expiração ainda.
+  const baseFiltered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const arr = list.filter((it) => {
       if (category && it.categoryName !== category) return false;
@@ -135,6 +139,13 @@ function OpportunitiesTab() {
     });
     return arr;
   }, [list, search, category, sort, maxDistance, maxPrice]);
+
+  const expiredCount = useMemo(() => baseFiltered.filter((it) => isExpired(it.createdAt)).length, [baseFiltered]);
+  // Por padrão esconde expirados; o filtro "Mostrar expirados" revela.
+  const filtered = useMemo(
+    () => (showExpired ? baseFiltered : baseFiltered.filter((it) => !isExpired(it.createdAt))),
+    [baseFiltered, showExpired],
+  );
 
   if (isLoading) return <Spinner label="Carregando oportunidades…" />;
   if (isError) return <p className="text-danger">{(error as Error).message}</p>;
@@ -205,6 +216,21 @@ function OpportunitiesTab() {
             getValue={(v) => (Number(v) === 0 ? 'Qualquer' : `R$ ${v}`)}
             className="px-1"
           />
+        )}
+        {expiredCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowExpired((v) => !v)}
+            aria-pressed={showExpired}
+            className={`inline-flex items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              showExpired
+                ? 'border-primary bg-primary/15 text-primary'
+                : 'border-border text-text-muted hover:text-foreground'
+            }`}
+          >
+            <IconClock size={13} />
+            {showExpired ? 'Ocultar expirados' : `Mostrar expirados (${expiredCount})`}
+          </button>
         )}
       </Card>
 
