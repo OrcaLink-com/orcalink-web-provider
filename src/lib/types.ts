@@ -49,6 +49,15 @@ export interface CreateProposalInput {
   technical?: ProposalTechnical;
   /** FINAL: plano de pagamento faseado (valores do prestador; soma == amountCents). */
   paymentPlan?: ProposalPhase[];
+  /** Anexos (PDFs/imagens) para o cliente ver. */
+  attachments?: ProposalAttachment[];
+}
+/** Anexo de proposta (arquivo já enviado pelo /uploads). */
+export interface ProposalAttachment {
+  url: string;
+  name: string;
+  type?: string;
+  size?: number;
 }
 /** Fase do plano de pagamento (entrada — valor do prestador). */
 export interface ProposalPhase {
@@ -420,6 +429,7 @@ export interface Proposal {
   items?: ProposalItem[];
   technical?: ProposalTechnical | null;
   paymentPlan?: ProposalPhaseView[];
+  attachments?: ProposalAttachment[];
   status: ProposalStatus;
   createdAt: string;
 }

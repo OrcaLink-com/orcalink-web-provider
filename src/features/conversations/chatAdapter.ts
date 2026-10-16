@@ -68,6 +68,7 @@ export function toProposalPayload(p: Proposal, compareCount?: number): ProposalP
     items: p.items,
     technical: p.technical,
     paymentPlan: p.paymentPlan,
+    attachments: p.attachments,
     status: p.status === 'PENDING' ? 'pending' : p.status === 'REJECTED' ? 'rejected' : 'accepted',
     compareCount,
   };

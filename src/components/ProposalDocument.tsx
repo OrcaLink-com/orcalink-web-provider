@@ -12,6 +12,9 @@ import {
   LuWrench,
   LuTruck,
   LuPlus,
+  LuPaperclip,
+  LuDownload,
+  LuImage,
 } from 'react-icons/lu';
 import type { IconType } from 'react-icons';
 import { api } from '../lib/api';
@@ -223,6 +226,39 @@ export function ProposalDocument({
               <p className="whitespace-pre-wrap text-sm text-text-muted">{payload.notes}</p>
             </section>
           )}
+
+          {payload.attachments && payload.attachments.length > 0 && (
+            <section className="mt-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Anexos</h3>
+              <ul className="space-y-2">
+                {payload.attachments.map((a, i) => {
+                  const isImg = (a.type ?? '').startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(a.name);
+                  return (
+                    <li key={a.url + i}>
+                      <a
+                        href={a.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-center gap-3 rounded-lg border border-border bg-content1 px-3 py-2.5 transition-colors hover:border-primary/40 hover:bg-content2"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          {isImg ? <LuImage size={18} /> : <LuPaperclip size={18} />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{a.name}</span>
+                          <span className="block text-xs text-text-muted">
+                            {isImg ? 'Imagem' : 'PDF'}
+                            {typeof a.size === 'number' ? ` · ${formatSize(a.size)}` : ''}
+                          </span>
+                        </span>
+                        <LuDownload size={17} className="shrink-0 text-text-muted transition-colors group-hover:text-primary" />
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
         </div>
 
         {/* Total fixo no rodapé */}
@@ -233,6 +269,12 @@ export function ProposalDocument({
       </div>
     </div>
   );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function ItemRow({ item }: { item: ProposalItem }) {

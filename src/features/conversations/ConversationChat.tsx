@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { LuBanknote, LuCalendarClock, LuCalendarPlus, LuCheck, LuCircleCheck, LuCreditCard, LuFilePlus, LuFileText, LuLayers, LuPlay, LuPlus, LuQrCode, LuTrash2 } from 'react-icons/lu';
+import { LuBanknote, LuCalendarClock, LuCalendarPlus, LuCheck, LuCircleCheck, LuCreditCard, LuFilePlus, LuFileText, LuLayers, LuPaperclip, LuPlay, LuPlus, LuQrCode, LuTrash2, LuX } from 'react-icons/lu';
 import { useAuth } from '../../auth/AuthContext';
 import { setActiveConversation } from '../../lib/activeChat';
 import {
@@ -27,7 +27,8 @@ import { usePeerTyping, usePresence, useQuoteRealtime, useTypingSignal } from '.
 import { ChatConversationView } from '../../components/Chat';
 import type { ChatActionHandlers, ChatMessage, ChatParticipant, ProposalPayload } from '../../components/Chat';
 import { ProposalDocument } from '../../components/ProposalDocument';
-import type { Proposal, ProposalItemGroup } from '../../lib/types';
+import type { Proposal, ProposalAttachment, ProposalItemGroup } from '../../lib/types';
+import { api } from '../../lib/api';
 import { messagesToChat, toServiceStatus } from './chatAdapter';
 import { paymentsEnabled } from '../../lib/flags';
 import { computeNextStep } from './nextStep';
@@ -734,7 +735,31 @@ function ProposalForm({
   );
   const setPhase = (i: number, patch: Partial<{ title: string; valueStr: string }>) =>
     setPhases((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  // Anexos (PDFs/imagens) para o cliente ver.
+  const [attachments, setAttachments] = useState<ProposalAttachment[]>(initial?.attachments ?? []);
+  const [uploadingAtt, setUploadingAtt] = useState(false);
+  const [attError, setAttError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  async function onAddFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (!files.length) return;
+    setAttError(null);
+    setUploadingAtt(true);
+    try {
+      for (const file of files) {
+        if (attachments.length >= 10) break;
+        const { url } = await api.uploadImage(file, 'proposal');
+        setAttachments((prev) => [...prev, { url, name: file.name, type: file.type, size: file.size }]);
+      }
+    } catch (err) {
+      setAttError((err as Error).message);
+    } finally {
+      setUploadingAtt(false);
+    }
+  }
+  const removeAttachment = (i: number) => setAttachments((prev) => prev.filter((_, idx) => idx !== i));
 
   // Limpa o erro assim que o usuário edita o formulário (valor, itens, descrição, modo).
   useEffect(() => {
@@ -857,6 +882,7 @@ function ProposalForm({
         items: itemsPayload,
         technical: technicalPayload,
         paymentPlan: paymentPlanPayload,
+        attachments: attachments.length ? attachments : undefined,
       });
       onClose();
     } catch (err) {
@@ -1187,6 +1213,49 @@ function ProposalForm({
         <FieldLabel>Observações (opcional)</FieldLabel>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Algo que o cliente deva saber" className={input} />
       </div>
+
+      <div>
+        <FieldLabel>Anexos (opcional)</FieldLabel>
+        <p className="mb-2 text-xs text-text-muted">
+          PDFs ou imagens que o cliente poderá abrir (ex.: orçamento em PDF, fotos). Até 10 arquivos, 10&nbsp;MB cada.
+        </p>
+        {attachments.length > 0 && (
+          <ul className="mb-2 space-y-1.5">
+            {attachments.map((a, i) => (
+              <li
+                key={a.url + i}
+                className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              >
+                <LuPaperclip size={15} className="shrink-0 text-text-muted" />
+                <span className="min-w-0 flex-1 truncate">{a.name}</span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(i)}
+                  className="shrink-0 rounded-full p-1 text-text-muted hover:bg-content2 hover:text-danger"
+                  aria-label="Remover anexo"
+                >
+                  <LuX size={15} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {attachments.length < 10 && (
+          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border py-3 text-sm font-medium text-text-muted transition hover:bg-content2 hover:text-foreground">
+            <LuPaperclip size={16} /> {uploadingAtt ? 'Enviando…' : 'Adicionar anexo'}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              multiple
+              onChange={onAddFiles}
+              className="hidden"
+              disabled={uploadingAtt}
+            />
+          </label>
+        )}
+        {attError && <p className="mt-1 text-xs text-danger">{attError}</p>}
+      </div>
+
       {error && (
         <p className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-medium text-danger">{error}</p>
       )}

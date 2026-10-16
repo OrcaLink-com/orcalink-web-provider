@@ -218,6 +218,8 @@ export interface ProposalPayload {
   format?: 'SIMPLE' | 'PRO';
   items?: ProposalItem[];
   technical?: ProposalTechnical | null;
+  /** Anexos (PDFs/imagens) enviados pelo profissional. */
+  attachments?: { url: string; name: string; type?: string; size?: number }[];
   /** Nº de outras propostas finais pendentes (mostra "Comparar (N)"). */
   compareCount?: number;
 }
